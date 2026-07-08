@@ -1,0 +1,509 @@
+<kubo-public-nav />
+
+<main class="min-h-dvh bg-background text-foreground">
+  <!-- ============================================================ -->
+  <!-- 1. HERO                                                       -->
+  <!-- ============================================================ -->
+  <section
+    id="inicio"
+    class="relative isolate overflow-hidden px-4 pb-16 pt-16 sm:px-6 sm:pb-24 sm:pt-20 lg:px-8 lg:pb-28 lg:pt-24"
+  >
+    <!-- Animated ambient blobs (decorative) -->
+    <div aria-hidden="true" class="pointer-events-none absolute inset-0 -z-10">
+      <div
+        class="blob-a absolute -left-16 -top-24 h-72 w-72 rounded-full bg-brand/25 blur-3xl sm:h-96 sm:w-96"
+      ></div>
+      <div
+        class="blob-b absolute -right-20 top-1/4 h-72 w-72 rounded-full bg-accent/20 blur-3xl sm:h-[28rem] sm:w-[28rem]"
+      ></div>
+      <div
+        class="blob-a absolute -bottom-28 left-1/4 h-64 w-64 rounded-full bg-brand-400/20 blur-3xl"
+      ></div>
+    </div>
+
+    <div class="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-2 lg:gap-16">
+      <!-- Copy -->
+      <div kuboReveal class="text-center lg:text-left">
+        <span
+          class="inline-flex items-center gap-2 rounded-full border border-border bg-surface/70 px-4 py-1.5 text-sm font-medium text-muted-foreground backdrop-blur"
+        >
+          <ng-icon name="lucideCloud" class="text-base text-brand" aria-hidden="true" />
+          Tu nube personal, simple y segura
+        </span>
+
+        <h1
+          class="font-heading mt-6 text-4xl font-extrabold leading-tight tracking-tight sm:text-5xl lg:text-6xl"
+        >
+          Tus archivos,
+          <span class="text-brand">en todas partes</span>
+        </h1>
+
+        <p
+          class="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground lg:mx-0"
+        >
+          Guardá con seguridad, compartí con permisos precisos y organizá todo en
+          carpetas. KuboDrive mantiene tu información ordenada y siempre a mano,
+          desde cualquier dispositivo.
+        </p>
+
+        <div
+          class="mt-8 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-center lg:justify-start"
+        >
+          <a
+            routerLink="/registro"
+            class="bg-brand text-brand-fg hover:bg-brand-hover font-semibold rounded-lg inline-flex min-h-[44px] items-center justify-center gap-2 px-6 py-3 shadow-lg shadow-brand/20 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:transition-none"
+          >
+            Comenzar gratis
+            <ng-icon name="lucideArrowRight" class="text-lg" aria-hidden="true" />
+          </a>
+          <a
+            routerLink="/home"
+            class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-border bg-surface/60 px-6 py-3 font-semibold text-foreground backdrop-blur transition-colors duration-200 hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:transition-none"
+          >
+            <ng-icon name="lucideMonitor" class="text-lg text-brand" aria-hidden="true" />
+            Ver demo
+          </a>
+        </div>
+
+        <p class="mt-4 text-sm text-muted-foreground">
+          Sin tarjeta de crédito · 2 GB gratis para siempre
+        </p>
+      </div>
+
+      <!-- Interactive product mock -->
+      <div kuboReveal [delay]="120" class="relative mx-auto w-full max-w-md lg:max-w-none">
+        <!-- Floating storage card (independent of tilt, gently bobbing) -->
+        <div
+          class="bob bg-surface border border-border rounded-xl absolute -bottom-6 -left-3 z-20 w-52 p-4 shadow-xl sm:-left-6"
+        >
+          <div class="flex items-center gap-2 text-brand">
+            <ng-icon name="lucideHardDrive" class="text-lg" aria-hidden="true" />
+            <span class="text-sm font-semibold text-foreground">Almacenamiento</span>
+          </div>
+          <div class="mt-3 h-2 w-full overflow-hidden rounded-full bg-surface-muted">
+            <div
+              class="h-full rounded-full bg-brand transition-[width] duration-500 motion-reduce:transition-none"
+              [style.width.%]="storagePct()"
+            ></div>
+          </div>
+          <p class="mt-2 text-xs text-muted-foreground">
+            {{ formatBytes(storageUsed()) }} de {{ formatBytes(storageQuota()) }}
+          </p>
+        </div>
+
+        <!-- Tilting dashboard card -->
+        <div
+          (pointermove)="onMockMove($event)"
+          (pointerleave)="onMockLeave()"
+          [style.transform]="mockTransform()"
+          class="bg-surface border border-border relative z-10 rounded-2xl p-4 shadow-2xl transition-transform duration-300 ease-out will-change-transform sm:p-5 motion-reduce:transition-none"
+        >
+          <!-- Mock top bar -->
+          <div class="mb-4 flex items-center gap-3">
+            <span class="flex items-center gap-1.5" aria-hidden="true">
+              <span class="h-3 w-3 rounded-full bg-destructive/70"></span>
+              <span class="h-3 w-3 rounded-full bg-warning/70"></span>
+              <span class="h-3 w-3 rounded-full bg-success/70"></span>
+            </span>
+            <span class="font-heading text-sm font-semibold text-foreground">Mi unidad</span>
+            <span
+              class="ml-auto inline-flex items-center gap-2 rounded-lg bg-surface-muted px-3 py-1.5 text-xs text-muted-foreground"
+              aria-hidden="true"
+            >
+              <ng-icon name="lucideSearch" class="text-sm" />
+              Buscar
+            </span>
+          </div>
+
+          <!-- Folder chips -->
+          @if (mockFolders().length) {
+            <div class="mb-3 flex flex-wrap gap-2">
+              @for (folder of mockFolders(); track folder.id) {
+                <span
+                  class="inline-flex items-center gap-2 rounded-lg border border-border bg-surface-muted/60 px-3 py-2 text-sm font-medium text-foreground"
+                >
+                  <kubo-file-icon kind="folder" size="1.1rem" />
+                  {{ folder.name }}
+                </span>
+              }
+            </div>
+          }
+
+          <!-- File grid -->
+          <div class="grid grid-cols-3 gap-2.5 sm:gap-3">
+            @for (file of mockFiles(); track file.id) {
+              <div
+                class="flex flex-col items-start gap-2 rounded-xl border border-border bg-surface-muted/50 p-3 transition-colors duration-200 hover:bg-surface-muted motion-reduce:transition-none"
+              >
+                <kubo-file-icon [mime]="file.mimeType" size="1.6rem" />
+                <p class="w-full truncate text-xs font-medium text-foreground">
+                  {{ file.originalName }}
+                </p>
+                <p class="text-[0.65rem] text-muted-foreground">
+                  {{ formatBytes(file.size) }}
+                </p>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 2. TRUST BAR                                                  -->
+  <!-- ============================================================ -->
+  <section kuboReveal class="border-y border-border bg-surface/40">
+    <div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8">
+      <p class="text-center text-sm font-medium text-muted-foreground">
+        Equipos de toda la región ya confían en KuboDrive
+      </p>
+
+      <ul
+        class="mt-6 flex flex-wrap items-center justify-center gap-x-8 gap-y-4 sm:gap-x-12"
+      >
+        @for (logo of trustLogos; track logo) {
+          <li
+            class="font-heading text-lg font-bold text-muted-foreground/60 transition-colors duration-200 hover:text-foreground motion-reduce:transition-none sm:text-xl"
+          >
+            {{ logo }}
+          </li>
+        }
+      </ul>
+
+      <dl class="mt-10 grid grid-cols-1 gap-6 text-center sm:grid-cols-3">
+        <div>
+          <dt class="font-heading text-3xl font-extrabold text-brand sm:text-4xl">+10.000</dt>
+          <dd class="mt-1 text-sm text-muted-foreground">equipos activos</dd>
+        </div>
+        <div>
+          <dt class="font-heading text-3xl font-extrabold text-brand sm:text-4xl">5 M</dt>
+          <dd class="mt-1 text-sm text-muted-foreground">archivos protegidos</dd>
+        </div>
+        <div>
+          <dt class="font-heading text-3xl font-extrabold text-brand sm:text-4xl">99,9 %</dt>
+          <dd class="mt-1 text-sm text-muted-foreground">de disponibilidad</dd>
+        </div>
+      </dl>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 3. FEATURES                                                   -->
+  <!-- ============================================================ -->
+  <section id="producto" class="scroll-mt-24 px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-28">
+    <div class="mx-auto max-w-7xl">
+      <div kuboReveal class="mx-auto max-w-2xl text-center">
+        <p class="text-sm font-semibold uppercase tracking-wide text-brand">Producto</p>
+        <h2 class="font-heading mt-3 text-3xl font-bold sm:text-4xl">
+          Todo lo que necesitás para tus archivos
+        </h2>
+        <p class="mt-4 text-lg text-muted-foreground">
+          Herramientas pensadas para guardar, compartir y encontrar sin fricción.
+        </p>
+      </div>
+
+      <div class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        @for (feature of features; track feature.title) {
+          <!-- Reveal on the wrapper so the card keeps its class-based hover-lift
+               (the directive leaves an inline transform that would win otherwise). -->
+          <div kuboReveal [delay]="$index * 80" class="h-full">
+            <article
+              class="bg-surface border border-border rounded-xl group h-full p-6 transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-1 hover:border-brand/40 hover:shadow-lg focus-within:border-brand/40 motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+            >
+              <div
+                class="flex h-12 w-12 items-center justify-center rounded-xl bg-brand/10 text-brand transition-colors duration-200 group-hover:bg-brand group-hover:text-brand-fg motion-reduce:transition-none"
+              >
+                <ng-icon [name]="feature.icon" class="text-2xl" aria-hidden="true" />
+              </div>
+              <h3 class="font-heading mt-5 text-lg font-semibold">{{ feature.title }}</h3>
+              <p class="mt-2 text-muted-foreground">{{ feature.text }}</p>
+            </article>
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 4. COMO FUNCIONA                                              -->
+  <!-- ============================================================ -->
+  <section class="bg-surface/40 px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-28">
+    <div class="mx-auto max-w-6xl">
+      <div kuboReveal class="mx-auto max-w-2xl text-center">
+        <p class="text-sm font-semibold uppercase tracking-wide text-brand">Cómo funciona</p>
+        <h2 class="font-heading mt-3 text-3xl font-bold sm:text-4xl">
+          Empezá en tres pasos
+        </h2>
+        <p class="mt-4 text-lg text-muted-foreground">
+          De cero a compartir tu primer archivo en minutos.
+        </p>
+      </div>
+
+      <div class="relative mt-14 grid gap-12 md:grid-cols-3 md:gap-8">
+        <!-- Dashed connector (decorative, desktop only) -->
+        <div aria-hidden="true" class="absolute inset-x-0 top-8 hidden md:block">
+          <div class="mx-auto h-px w-2/3 border-t-2 border-dashed border-border"></div>
+        </div>
+
+        @for (step of steps; track step.title) {
+          <div kuboReveal [delay]="$index * 120" class="relative text-center">
+            <div
+              class="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-brand text-brand-fg shadow-lg shadow-brand/20 ring-8 ring-background"
+            >
+              <span class="font-heading text-2xl font-bold">{{ $index + 1 }}</span>
+            </div>
+            <div class="mt-5 flex items-center justify-center gap-2 text-brand">
+              <ng-icon [name]="step.icon" class="text-xl" aria-hidden="true" />
+              <h3 class="font-heading text-lg font-semibold text-foreground">{{ step.title }}</h3>
+            </div>
+            <p class="mx-auto mt-2 max-w-xs text-muted-foreground">{{ step.text }}</p>
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 5. SEGURIDAD                                                  -->
+  <!-- ============================================================ -->
+  <section id="seguridad" class="scroll-mt-24 px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-28">
+    <div class="mx-auto grid max-w-7xl items-start gap-12 lg:grid-cols-2 lg:gap-16">
+      <div kuboReveal>
+        <p class="text-sm font-semibold uppercase tracking-wide text-brand">Seguridad</p>
+        <h2 class="font-heading mt-3 text-3xl font-bold sm:text-4xl">
+          Tu información, siempre bajo control
+        </h2>
+        <p class="mt-4 text-lg text-muted-foreground">
+          La seguridad no es un extra: es la base. Cifrado, permisos claros y control
+          total sobre quién accede a cada archivo.
+        </p>
+
+        <ul class="mt-8 flex flex-wrap gap-3">
+          @for (badge of securityBadges; track badge) {
+            <li
+              class="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-2 text-sm font-medium text-foreground"
+            >
+              <ng-icon name="lucideCheck" class="text-base text-success" aria-hidden="true" />
+              {{ badge }}
+            </li>
+          }
+        </ul>
+      </div>
+
+      <div class="grid gap-4">
+        @for (point of securityPoints; track point.title) {
+          <article
+            kuboReveal
+            [delay]="$index * 100"
+            class="bg-surface border border-border rounded-xl flex gap-4 p-6"
+          >
+            <div
+              class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand/10 text-brand"
+            >
+              <ng-icon [name]="point.icon" class="text-2xl" aria-hidden="true" />
+            </div>
+            <div>
+              <h3 class="font-heading text-lg font-semibold">{{ point.title }}</h3>
+              <p class="mt-1 text-muted-foreground">{{ point.text }}</p>
+            </div>
+          </article>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 6. PLANES                                                     -->
+  <!-- ============================================================ -->
+  <section id="precios" class="scroll-mt-24 bg-surface/40 px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-28">
+    <div class="mx-auto max-w-6xl">
+      <div kuboReveal class="mx-auto max-w-2xl text-center">
+        <p class="text-sm font-semibold uppercase tracking-wide text-brand">Precios</p>
+        <h2 class="font-heading mt-3 text-3xl font-bold sm:text-4xl">
+          Un plan para cada necesidad
+        </h2>
+        <p class="mt-4 text-lg text-muted-foreground">
+          Empezá gratis y ampliá cuando lo necesites. Sin sorpresas.
+        </p>
+      </div>
+
+      <div class="mt-12 grid items-stretch gap-6 lg:grid-cols-3">
+        @for (plan of plans; track plan.name) {
+          <div
+            class="bg-surface relative flex flex-col rounded-xl border p-6 transition-transform duration-200 sm:p-8 motion-reduce:transition-none"
+            [class]="
+              plan.popular
+                ? 'border-brand ring-2 ring-brand shadow-xl lg:-translate-y-2'
+                : 'border-border hover:-translate-y-1 motion-reduce:hover:translate-y-0'
+            "
+          >
+            @if (plan.popular) {
+              <span
+                class="absolute -top-3 left-1/2 inline-flex -translate-x-1/2 items-center gap-1 rounded-full bg-brand px-3 py-1 text-xs font-semibold text-brand-fg shadow"
+              >
+                <ng-icon name="lucideStar" class="text-sm" aria-hidden="true" />
+                Popular
+              </span>
+            }
+
+            <h3 class="font-heading text-xl font-bold">{{ plan.name }}</h3>
+            <p class="mt-1 text-sm text-muted-foreground">{{ plan.tagline }}</p>
+
+            <div class="mt-5 flex items-baseline gap-1">
+              <span class="font-heading text-4xl font-extrabold">{{ plan.price }}</span>
+              <span class="text-sm text-muted-foreground">/ {{ plan.period }}</span>
+            </div>
+            <p class="mt-1 text-sm font-medium text-brand">{{ plan.storage }} de almacenamiento</p>
+
+            <ul class="mt-6 flex-1 space-y-3">
+              @for (item of plan.features; track item) {
+                <li class="flex items-start gap-3 text-sm">
+                  <ng-icon
+                    name="lucideCheck"
+                    class="mt-0.5 shrink-0 text-base text-success"
+                    aria-hidden="true"
+                  />
+                  <span class="text-foreground">{{ item }}</span>
+                </li>
+              }
+            </ul>
+
+            <a
+              routerLink="/registro"
+              class="mt-8 inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg px-5 py-3 font-semibold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:transition-none"
+              [class]="
+                plan.popular
+                  ? 'bg-brand text-brand-fg hover:bg-brand-hover shadow-lg shadow-brand/20'
+                  : 'border border-border text-foreground hover:bg-surface-muted'
+              "
+            >
+              {{ plan.cta }}
+              <ng-icon name="lucideArrowRight" class="text-base" aria-hidden="true" />
+            </a>
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 7. TESTIMONIOS                                                -->
+  <!-- ============================================================ -->
+  <section class="px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-28">
+    <div class="mx-auto max-w-6xl">
+      <div kuboReveal class="mx-auto max-w-2xl text-center">
+        <p class="text-sm font-semibold uppercase tracking-wide text-brand">Testimonios</p>
+        <h2 class="font-heading mt-3 text-3xl font-bold sm:text-4xl">
+          Historias de quienes ya lo usan
+        </h2>
+      </div>
+
+      <div class="mt-12 grid gap-6 md:grid-cols-3">
+        @for (item of testimonials(); track item.user.id) {
+          <figure
+            kuboReveal
+            [delay]="$index * 100"
+            class="bg-surface border border-border rounded-xl flex flex-col p-6"
+          >
+            <div class="flex gap-0.5 text-brand" aria-label="5 de 5 estrellas">
+              @for (star of [1, 2, 3, 4, 5]; track star) {
+                <ng-icon name="lucideStar" class="text-base" aria-hidden="true" />
+              }
+            </div>
+            <blockquote class="mt-4 flex-1 text-foreground">
+              &laquo;{{ item.quote }}&raquo;
+            </blockquote>
+            <figcaption class="mt-6 flex items-center gap-3">
+              <kubo-user-avatar [user]="item.user" [size]="44" />
+              <div>
+                <p class="font-semibold text-foreground">{{ item.user.name }}</p>
+                <p class="text-sm text-muted-foreground">{{ item.role }}</p>
+              </div>
+            </figcaption>
+          </figure>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 8. FAQ                                                        -->
+  <!-- ============================================================ -->
+  <section class="bg-surface/40 px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-28">
+    <div class="mx-auto max-w-3xl">
+      <div kuboReveal class="text-center">
+        <p class="text-sm font-semibold uppercase tracking-wide text-brand">Preguntas frecuentes</p>
+        <h2 class="font-heading mt-3 text-3xl font-bold sm:text-4xl">
+          ¿Tenés dudas? Las respondemos
+        </h2>
+      </div>
+
+      <div kuboReveal class="mt-10 space-y-3">
+        @for (item of faqs; track item.q) {
+          <div class="bg-surface border border-border rounded-xl overflow-hidden">
+            <h3>
+              <button
+                type="button"
+                (click)="toggleFaq($index)"
+                [attr.aria-expanded]="openFaq() === $index"
+                class="flex min-h-[44px] w-full items-center justify-between gap-4 p-5 text-left transition-colors duration-200 hover:bg-surface-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring motion-reduce:transition-none"
+              >
+                <span class="font-heading font-semibold text-foreground">{{ item.q }}</span>
+                <ng-icon
+                  name="lucideChevronDown"
+                  class="shrink-0 text-xl text-brand transition-transform duration-200 motion-reduce:transition-none"
+                  [class.rotate-180]="openFaq() === $index"
+                  aria-hidden="true"
+                />
+              </button>
+            </h3>
+            @if (openFaq() === $index) {
+              <div class="px-5 pb-5 text-muted-foreground">{{ item.a }}</div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 9. CTA BAND                                                   -->
+  <!-- ============================================================ -->
+  <section class="px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
+    <div
+      kuboReveal
+      class="relative isolate mx-auto max-w-5xl overflow-hidden rounded-3xl bg-brand px-6 py-14 text-center shadow-2xl sm:px-12 sm:py-16"
+    >
+      <div aria-hidden="true" class="pointer-events-none absolute inset-0 -z-10 opacity-40">
+        <div class="blob-b absolute -right-10 -top-10 h-56 w-56 rounded-full bg-brand-200 blur-3xl"></div>
+        <div class="blob-a absolute -bottom-16 -left-10 h-56 w-56 rounded-full bg-accent blur-3xl"></div>
+      </div>
+
+      <h2 class="font-heading text-3xl font-extrabold text-brand-fg sm:text-4xl">
+        Empezá gratis hoy
+      </h2>
+      <p class="mx-auto mt-4 max-w-xl text-lg text-brand-fg/90">
+        Creá tu cuenta en segundos y llevá tus archivos a todas partes. Sin tarjeta,
+        sin complicaciones.
+      </p>
+      <div class="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+        <a
+          routerLink="/registro"
+          class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg bg-background px-7 py-3 font-semibold text-foreground shadow-lg transition-colors duration-200 hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-background focus-visible:ring-offset-2 focus-visible:ring-offset-brand motion-reduce:transition-none"
+        >
+          Comenzar gratis
+          <ng-icon name="lucideArrowRight" class="text-lg" aria-hidden="true" />
+        </a>
+        <a
+          routerLink="/home"
+          class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-brand-fg/40 px-7 py-3 font-semibold text-brand-fg transition-colors duration-200 hover:bg-brand-fg/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-background focus-visible:ring-offset-2 focus-visible:ring-offset-brand motion-reduce:transition-none"
+        >
+          Ver demo
+        </a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<kubo-public-footer />

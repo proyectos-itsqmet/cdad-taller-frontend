@@ -1,0 +1,411 @@
+<div class="p-4 sm:p-6 lg:p-8">
+  <!-- ============================ Header ============================ -->
+  <header class="flex flex-col gap-4">
+    <kubo-breadcrumbs [items]="crumbs()" />
+
+    <div class="flex flex-wrap items-end justify-between gap-3">
+      <div class="min-w-0">
+        <h1 class="font-heading text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+          {{ title() }}
+        </h1>
+        <p class="mt-1 text-sm text-muted-foreground">
+          @if (totalCount() === 0) {
+            Carpeta vacía
+          } @else if (totalCount() === 1) {
+            1 elemento
+          } @else {
+            {{ totalCount() }} elementos
+          }
+        </p>
+      </div>
+
+      <!-- Read-only mock actions -->
+      <div class="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          disabled
+          [title]="mockTooltip"
+          class="flex h-10 cursor-not-allowed items-center gap-2 rounded-lg bg-brand px-3.5 text-sm font-semibold text-brand-fg opacity-60"
+        >
+          <ng-icon name="lucideUpload" class="text-base" aria-hidden="true" />
+          <span>Subir</span>
+        </button>
+        <button
+          type="button"
+          disabled
+          [title]="mockTooltip"
+          class="flex h-10 cursor-not-allowed items-center gap-2 rounded-lg border border-border bg-surface px-3.5 text-sm font-medium text-foreground opacity-60"
+        >
+          <ng-icon name="lucidePlus" class="text-base" aria-hidden="true" />
+          <span>Nueva carpeta</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Controls: search + sort + view -->
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+      <div class="relative sm:max-w-xs sm:flex-1">
+        <ng-icon
+          name="lucideSearch"
+          class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base text-muted-foreground"
+          aria-hidden="true"
+        />
+        <input
+          type="search"
+          [value]="search()"
+          (input)="onSearch($event)"
+          placeholder="Buscar en esta carpeta"
+          aria-label="Buscar en esta carpeta"
+          class="h-10 w-full rounded-lg border border-border bg-surface pl-10 pr-10 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        />
+        @if (search()) {
+          <button
+            type="button"
+            (click)="clearSearch()"
+            aria-label="Limpiar búsqueda"
+            title="Limpiar búsqueda"
+            class="absolute right-1.5 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-surface-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <ng-icon name="lucideX" class="text-base" aria-hidden="true" />
+          </button>
+        }
+      </div>
+
+      <div class="flex items-center gap-2 sm:ms-auto">
+        <kubo-sort-menu [(value)]="sort" />
+        <kubo-view-switcher [(value)]="viewMode" />
+      </div>
+    </div>
+  </header>
+
+  <!-- ============================= Body ============================= -->
+  <section class="mt-6">
+    @if (loading()) {
+      <!-- Simulated load -->
+      @if (viewMode() === 'list') {
+        <div class="rounded-xl border border-border bg-surface p-2">
+          <kubo-skeleton variant="row" [count]="8" />
+        </div>
+      } @else {
+        <ul class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6" role="list">
+          @for (i of skeletonSlots; track i) {
+            <li><kubo-skeleton variant="card" [count]="1" /></li>
+          }
+        </ul>
+      }
+    } @else if (!hasAnyItems()) {
+      <kubo-empty-state
+        icon="lucideFolderOpen"
+        title="Esta carpeta está vacía"
+        message="Aún no hay carpetas ni archivos aquí. En la versión completa podrás subir archivos o crear una carpeta."
+      />
+    } @else if (noMatches()) {
+      <kubo-empty-state
+        icon="lucideSearch"
+        title="Sin resultados"
+        message="No encontramos elementos que coincidan con tu búsqueda en esta carpeta."
+      />
+    } @else {
+      @switch (viewMode()) {
+        <!-- ------------------------- LIST ------------------------- -->
+        @case ('list') {
+          <div class="rounded-xl border border-border bg-surface">
+            <table class="w-full table-fixed text-sm">
+              <caption class="sr-only">Carpetas y archivos de {{ title() }}</caption>
+              <thead>
+                <tr class="border-b border-border text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <th scope="col" class="px-3 py-2.5" [attr.aria-sort]="ariaSort('name')">
+                    <button
+                      type="button"
+                      class="flex items-center gap-1 rounded transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      (click)="sortBy('name')"
+                    >
+                      Nombre
+                      @if (sort().field === 'name') {
+                        <ng-icon name="lucideChevronDown" class="text-sm text-brand" [class.rotate-180]="sort().dir === 'asc'" aria-hidden="true" />
+                      }
+                    </button>
+                  </th>
+                  <th scope="col" class="hidden w-40 px-3 py-2.5 lg:table-cell">Propietario</th>
+                  <th scope="col" class="hidden w-32 px-3 py-2.5 sm:table-cell" [attr.aria-sort]="ariaSort('modified')">
+                    <button
+                      type="button"
+                      class="flex items-center gap-1 rounded transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      (click)="sortBy('modified')"
+                    >
+                      Modificado
+                      @if (sort().field === 'modified') {
+                        <ng-icon name="lucideChevronDown" class="text-sm text-brand" [class.rotate-180]="sort().dir === 'asc'" aria-hidden="true" />
+                      }
+                    </button>
+                  </th>
+                  <th scope="col" class="w-24 px-3 py-2.5 text-right" [attr.aria-sort]="ariaSort('size')">
+                    <button
+                      type="button"
+                      class="ms-auto flex items-center gap-1 rounded transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      (click)="sortBy('size')"
+                    >
+                      Tamaño
+                      @if (sort().field === 'size') {
+                        <ng-icon name="lucideChevronDown" class="text-sm text-brand" [class.rotate-180]="sort().dir === 'asc'" aria-hidden="true" />
+                      }
+                    </button>
+                  </th>
+                  <th scope="col" class="hidden w-40 px-3 py-2.5 md:table-cell" [attr.aria-sort]="ariaSort('type')">
+                    <button
+                      type="button"
+                      class="flex items-center gap-1 rounded transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      (click)="sortBy('type')"
+                    >
+                      Tipo
+                      @if (sort().field === 'type') {
+                        <ng-icon name="lucideChevronDown" class="text-sm text-brand" [class.rotate-180]="sort().dir === 'asc'" aria-hidden="true" />
+                      }
+                    </button>
+                  </th>
+                  <th scope="col" class="hidden w-28 px-3 py-2.5 text-center md:table-cell">Compartido</th>
+                  <th scope="col" class="w-14 px-2 py-2.5"><span class="sr-only">Acciones</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Folders -->
+                @for (folder of visibleFolders(); track folder.id) {
+                  <tr class="border-b border-border transition-colors last:border-b-0 hover:bg-surface-muted">
+                    <td class="px-3 py-2">
+                      <a
+                        [routerLink]="['/archivos', folder.id]"
+                        class="flex min-w-0 items-center gap-3 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        <kubo-file-icon kind="folder" size="1.375rem" />
+                        <span class="truncate font-medium text-foreground">{{ folder.name }}</span>
+                      </a>
+                    </td>
+                    <td class="hidden px-3 py-2 text-muted-foreground lg:table-cell">
+                      <span class="inline-flex items-center gap-2">
+                        <kubo-user-avatar [user]="ds.currentUser()" [size]="22" />
+                        <span class="rounded-md bg-surface-muted px-1.5 py-0.5 text-xs font-medium text-foreground">Yo</span>
+                      </span>
+                    </td>
+                    <td class="hidden px-3 py-2 text-muted-foreground sm:table-cell" [title]="absoluteDate(folder.createdAt)">
+                      {{ relativeTime(folder.createdAt) }}
+                    </td>
+                    <td class="px-3 py-2 text-right text-muted-foreground">{{ folderCount(folder.id) || '—' }}</td>
+                    <td class="hidden px-3 py-2 text-muted-foreground md:table-cell">Carpeta</td>
+                    <td class="hidden px-3 py-2 text-center text-muted-foreground md:table-cell">—</td>
+                    <td class="px-2 py-2"></td>
+                  </tr>
+                }
+                <!-- Files -->
+                @for (file of visibleFiles(); track file.id) {
+                  <tr class="border-b border-border transition-colors last:border-b-0 hover:bg-surface-muted">
+                    <td class="px-3 py-2">
+                      <button
+                        type="button"
+                        (click)="openDetails(file)"
+                        class="flex w-full min-w-0 items-center gap-3 rounded text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        [title]="file.originalName"
+                      >
+                        <kubo-file-icon [mime]="file.mimeType" size="1.375rem" />
+                        <span class="truncate font-medium text-foreground">{{ file.originalName }}</span>
+                        @if (isStarred(file)) {
+                          <ng-icon name="lucideStar" class="shrink-0 text-sm text-warning" aria-label="Destacado" />
+                        }
+                      </button>
+                    </td>
+                    <td class="hidden px-3 py-2 text-muted-foreground lg:table-cell">
+                      <span class="inline-flex items-center gap-2">
+                        <kubo-user-avatar [user]="ds.currentUser()" [size]="22" />
+                        @if (isMine(file)) {
+                          <span class="rounded-md bg-surface-muted px-1.5 py-0.5 text-xs font-medium text-foreground">Yo</span>
+                        } @else {
+                          <span class="truncate">{{ owner(file)?.name }}</span>
+                        }
+                      </span>
+                    </td>
+                    <td class="hidden px-3 py-2 text-muted-foreground sm:table-cell" [title]="absoluteDate(file.modifiedAt)">
+                      {{ relativeTime(file.modifiedAt) }}
+                    </td>
+                    <td class="px-3 py-2 text-right text-muted-foreground">{{ formatBytes(file.size) }}</td>
+                    <td class="hidden px-3 py-2 text-muted-foreground md:table-cell">
+                      <span class="block truncate">{{ friendlyType(file.mimeType) }}</span>
+                    </td>
+                    <td class="hidden px-3 py-2 text-center md:table-cell">
+                      @if (isShared(file)) {
+                        <ng-icon name="lucideShare2" class="text-base text-brand" [attr.aria-label]="shareLabel(file)" [title]="shareLabel(file)" />
+                      } @else {
+                        <span class="text-muted-foreground" title="Privado">—</span>
+                      }
+                    </td>
+                    <td class="px-2 py-2">
+                      <div class="flex items-center justify-end gap-0.5">
+                        <button
+                          type="button"
+                          class="flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-surface-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          [attr.aria-pressed]="isStarred(file)"
+                          [attr.aria-label]="isStarred(file) ? 'Quitar de destacados' : 'Marcar como destacado'"
+                          [title]="isStarred(file) ? 'Quitar de destacados' : 'Marcar como destacado'"
+                          (click)="toggleStar(file, $event)"
+                        >
+                          <ng-icon name="lucideStar" class="text-base" [class.text-warning]="isStarred(file)" aria-hidden="true" />
+                        </button>
+                        <kubo-file-menu [file]="file" (details)="openDetails(file)" (share)="openShare(file)" />
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+
+        <!-- ---------------------- GRID SMALL ---------------------- -->
+        @case ('grid-small') {
+          <div class="flex flex-col gap-6">
+            @if (visibleFolders().length) {
+              <section aria-labelledby="fld-h">
+                <h2 id="fld-h" class="mb-3 font-heading text-sm font-semibold uppercase tracking-wide text-muted-foreground">Carpetas</h2>
+                <ul class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" role="list">
+                  @for (folder of visibleFolders(); track folder.id) {
+                    <li>
+                      <a
+                        [routerLink]="['/archivos', folder.id]"
+                        class="flex items-center gap-3 rounded-lg border border-border bg-surface px-3 py-2.5 transition-colors hover:border-brand/40 hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        <kubo-file-icon kind="folder" size="1.5rem" />
+                        <span class="min-w-0 flex-1">
+                          <span class="block truncate text-sm font-medium text-foreground">{{ folder.name }}</span>
+                          <span class="block text-xs text-muted-foreground">{{ folderCountLabel(folder.id) }}</span>
+                        </span>
+                      </a>
+                    </li>
+                  }
+                </ul>
+              </section>
+            }
+            @if (visibleFiles().length) {
+              <section aria-labelledby="fil-h">
+                <h2 id="fil-h" class="mb-3 font-heading text-sm font-semibold uppercase tracking-wide text-muted-foreground">Archivos</h2>
+                <ul class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" role="list">
+                  @for (file of visibleFiles(); track file.id) {
+                    <li>
+                      <div class="group flex items-center gap-2 rounded-lg border border-border bg-surface pr-1.5 transition-colors hover:border-brand/40 hover:bg-surface-muted">
+                        <button
+                          type="button"
+                          (click)="openDetails(file)"
+                          class="flex min-w-0 flex-1 items-center gap-3 rounded-lg py-2.5 pl-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          [title]="file.originalName"
+                        >
+                          <kubo-file-icon [mime]="file.mimeType" size="1.5rem" />
+                          <span class="min-w-0 flex-1">
+                            <span class="block truncate text-sm font-medium text-foreground">{{ file.originalName }}</span>
+                            <span class="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              {{ formatBytes(file.size) }}
+                              @if (isShared(file)) {
+                                <ng-icon name="lucideShare2" class="text-brand" [attr.aria-label]="shareLabel(file)" [title]="shareLabel(file)" />
+                              }
+                            </span>
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          class="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-surface-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          [attr.aria-pressed]="isStarred(file)"
+                          [attr.aria-label]="isStarred(file) ? 'Quitar de destacados' : 'Marcar como destacado'"
+                          [title]="isStarred(file) ? 'Quitar de destacados' : 'Marcar como destacado'"
+                          (click)="toggleStar(file, $event)"
+                        >
+                          <ng-icon name="lucideStar" class="text-base" [class.text-warning]="isStarred(file)" aria-hidden="true" />
+                        </button>
+                        <kubo-file-menu [file]="file" (details)="openDetails(file)" (share)="openShare(file)" />
+                      </div>
+                    </li>
+                  }
+                </ul>
+              </section>
+            }
+          </div>
+        }
+
+        <!-- ---------------------- GRID LARGE ---------------------- -->
+        @default {
+          <div class="flex flex-col gap-6">
+            @if (visibleFolders().length) {
+              <section aria-labelledby="fld-h">
+                <h2 id="fld-h" class="mb-3 font-heading text-sm font-semibold uppercase tracking-wide text-muted-foreground">Carpetas</h2>
+                <ul class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6" role="list">
+                  @for (folder of visibleFolders(); track folder.id) {
+                    <li>
+                      <a
+                        [routerLink]="['/archivos', folder.id]"
+                        class="flex flex-col items-center gap-3 rounded-xl border border-border bg-surface p-4 text-center transition-colors hover:border-brand/40 hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        <kubo-file-icon kind="folder" size="2.5rem" />
+                        <span class="w-full min-w-0">
+                          <span class="block truncate text-sm font-medium text-foreground">{{ folder.name }}</span>
+                          <span class="mt-0.5 block text-xs text-muted-foreground">{{ folderCountLabel(folder.id) }}</span>
+                        </span>
+                      </a>
+                    </li>
+                  }
+                </ul>
+              </section>
+            }
+            @if (visibleFiles().length) {
+              <section aria-labelledby="fil-h">
+                <h2 id="fil-h" class="mb-3 font-heading text-sm font-semibold uppercase tracking-wide text-muted-foreground">Archivos</h2>
+                <ul class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6" role="list">
+                  @for (file of visibleFiles(); track file.id) {
+                    <li>
+                      <div class="group relative flex flex-col rounded-xl border border-border bg-surface transition-colors hover:border-brand/40">
+                        <div class="absolute right-1.5 top-1.5 z-10 flex items-center gap-0.5">
+                          <button
+                            type="button"
+                            class="flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-surface-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            [attr.aria-pressed]="isStarred(file)"
+                            [attr.aria-label]="isStarred(file) ? 'Quitar de destacados' : 'Marcar como destacado'"
+                            [title]="isStarred(file) ? 'Quitar de destacados' : 'Marcar como destacado'"
+                            (click)="toggleStar(file, $event)"
+                          >
+                            <ng-icon name="lucideStar" class="text-base" [class.text-warning]="isStarred(file)" aria-hidden="true" />
+                          </button>
+                          <kubo-file-menu [file]="file" (details)="openDetails(file)" (share)="openShare(file)" />
+                        </div>
+
+                        <button
+                          type="button"
+                          (click)="openDetails(file)"
+                          class="flex flex-1 flex-col items-center gap-3 px-4 pb-3 pt-8 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                          [title]="file.originalName"
+                        >
+                          <kubo-file-icon [mime]="file.mimeType" size="2.75rem" />
+                          <span class="w-full min-w-0">
+                            <span class="block truncate text-sm font-medium text-foreground">{{ file.originalName }}</span>
+                            <span class="mt-0.5 block truncate text-xs text-muted-foreground">{{ friendlyType(file.mimeType) }}</span>
+                          </span>
+                        </button>
+
+                        <div class="flex items-center justify-between gap-2 border-t border-border px-3 py-2 text-xs text-muted-foreground">
+                          <span class="truncate" [title]="absoluteDate(file.modifiedAt)">{{ relativeTime(file.modifiedAt) }}</span>
+                          <span class="flex shrink-0 items-center gap-1.5">
+                            <span>{{ formatBytes(file.size) }}</span>
+                            @if (isShared(file)) {
+                              <ng-icon name="lucideShare2" class="text-brand" [attr.aria-label]="shareLabel(file)" [title]="shareLabel(file)" />
+                            }
+                          </span>
+                        </div>
+                      </div>
+                    </li>
+                  }
+                </ul>
+              </section>
+            }
+          </div>
+        }
+      }
+    }
+  </section>
+</div>
+
+<!-- Shared overlays: rendered once near the page root -->
+<kubo-details-pane [file]="selected()" [(open)]="detailsOpen" />
+<kubo-share-dialog [file]="selected()" [(open)]="shareOpen" />

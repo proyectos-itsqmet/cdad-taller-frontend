@@ -1,11 +1,30 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
 <head>
   <meta charset="utf-8">
-  <title>CdadTallerFrontend</title>
+  <title>KuboDrive</title>
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <script>
+    // Anti-flash: set the theme class BEFORE first paint to avoid a light/dark flicker.
+    (function () {
+      try {
+        var stored = localStorage.getItem('kubo-theme');
+        var mode = stored === 'light' || stored === 'dark' || stored === 'system'
+          ? stored
+          : 'system';
+        var prefersDark = window.matchMedia
+          && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var isDark = mode === 'dark' || (mode === 'system' && prefersDark);
+        if (isDark) {
+          document.documentElement.classList.add('dark');
+        }
+      } catch (e) {
+        /* localStorage/matchMedia unavailable — fall through to light. */
+      }
+    })();
+  </script>
 </head>
 <body>
   <app-root></app-root>

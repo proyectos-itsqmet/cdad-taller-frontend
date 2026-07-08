@@ -1,0 +1,51 @@
+<div
+  class="relative flex min-h-dvh w-full flex-col justify-between overflow-hidden bg-gradient-to-br from-brand-600 via-brand-700 to-brand-900 p-10 xl:p-14"
+>
+  <!-- Soft decorative glows (purely aesthetic) -->
+  <span
+    class="pointer-events-none absolute -right-24 -top-24 size-72 rounded-full bg-white/10 blur-3xl"
+    aria-hidden="true"
+  ></span>
+  <span
+    class="pointer-events-none absolute -bottom-28 -left-16 size-80 rounded-full bg-brand-400/20 blur-3xl"
+    aria-hidden="true"
+  ></span>
+
+  <!-- Brand lockup -> home -->
+  <a
+    routerLink="/"
+    class="relative inline-flex items-center gap-2.5 self-start rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+  >
+    <span class="flex size-9 items-center justify-center rounded-xl bg-white/15 text-white shadow-sm ring-1 ring-white/25">
+      <ng-icon name="lucideBox" class="text-xl" aria-hidden="true" />
+    </span>
+    <span class="font-heading text-lg font-bold tracking-tight text-white">KuboDrive</span>
+  </a>
+
+  <!-- Headline + features -->
+  <div class="relative max-w-md">
+    <p class="font-heading text-3xl font-bold leading-tight tracking-tight text-white xl:text-4xl">
+      {{ headline() }}
+    </p>
+    <p class="mt-4 text-base leading-relaxed text-brand-100">
+      {{ subtext() }}
+    </p>
+
+    <ul class="mt-10 flex flex-col gap-5">
+      @for (f of features; track f.title) {
+        <li class="flex items-start gap-4">
+          <span class="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl bg-white/15 text-white ring-1 ring-white/20">
+            <ng-icon [name]="f.icon" class="text-xl" aria-hidden="true" />
+          </span>
+          <span class="flex flex-col">
+            <span class="font-semibold text-white">{{ f.title }}</span>
+            <span class="text-sm text-brand-100">{{ f.text }}</span>
+          </span>
+        </li>
+      }
+    </ul>
+  </div>
+
+  <!-- Footnote -->
+  <p class="relative text-xs text-brand-100/80">© 2026 KuboDrive · Maqueta de demostración</p>
+</div>

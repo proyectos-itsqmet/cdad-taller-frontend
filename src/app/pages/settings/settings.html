@@ -1,0 +1,38 @@
+<div class="p-4 sm:p-6 lg:p-8">
+  <header class="mb-6">
+    <h1 class="font-heading text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+      Configuración
+    </h1>
+    <p class="mt-1 text-sm text-muted-foreground">
+      Administrá tu cuenta, la apariencia y tus preferencias.
+    </p>
+  </header>
+
+  <div class="flex flex-col gap-6 lg:flex-row lg:gap-8">
+    <nav aria-label="Secciones de configuración" class="lg:w-56 lg:shrink-0">
+      <ul
+        class="flex gap-1 overflow-x-auto rounded-xl border border-border bg-surface p-1 lg:flex-col lg:overflow-visible lg:border-0 lg:bg-transparent lg:p-0"
+      >
+        @for (tab of tabs; track tab.path) {
+          <li class="shrink-0 lg:shrink-0">
+            <a
+              [routerLink]="tab.path"
+              routerLinkActive
+              #rla="routerLinkActive"
+              [class]="rla.isActive ? activeClass : idleClass"
+              [attr.aria-current]="rla.isActive ? 'page' : null"
+              class="flex min-h-11 items-center gap-2.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:w-full"
+            >
+              <ng-icon [name]="tab.icon" class="text-lg" aria-hidden="true" />
+              <span>{{ tab.label }}</span>
+            </a>
+          </li>
+        }
+      </ul>
+    </nav>
+
+    <div class="min-w-0 flex-1">
+      <router-outlet />
+    </div>
+  </div>
+</div>

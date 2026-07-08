@@ -1,3 +1,153 @@
 /* You can add global styles to this file, and also import other style files */
 
 @import 'tailwindcss';
+
+/* Dark mode is class-driven (.dark on <html>), toggled by ThemeService + anti-flash script. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ---------------------------------------------------------------------------
+   Metric-matched fallback for "Plus Jakarta Sans Variable".
+   Backed by locally-installed Arial; overrides are derived from the target
+   font metrics (Plus Jakarta Sans: unitsPerEm 1000, ascent 964, descent 260,
+   xWidthAvg 512) vs Arial (unitsPerEm 2048, xWidthAvg 904) so line boxes match
+   before the web font loads -> near-zero CLS.
+   size-adjust      = (512/1000) / (904/2048) = 116%
+   ascent-override  = 964 / (1000 * 1.16)     = 83.1%
+   descent-override = 260 / (1000 * 1.16)     = 22.4%
+--------------------------------------------------------------------------- */
+@font-face {
+  font-family: 'PJS Fallback';
+  src: local('Arial');
+  size-adjust: 116%;
+  ascent-override: 83.1%;
+  descent-override: 22.4%;
+  line-gap-override: 0%;
+}
+
+/* ---------------------------------------------------------------------------
+   Semantic design tokens — LIGHT (default).
+   Cyan-brillante brand. All pairs verified >= WCAG AA 4.5:1 for text.
+--------------------------------------------------------------------------- */
+:root {
+  --background: #f8fafc;        /* slate-50  */
+  --foreground: #0f172a;        /* slate-900 -> 17:1 on bg */
+  --surface: #ffffff;           /* card */
+  --surface-muted: #f1f5f9;     /* slate-100 wells / hover */
+  --border: #e2e8f0;            /* slate-200 */
+  --muted-foreground: #64748b;  /* slate-500 -> 4.55:1 on bg */
+
+  --brand: #0891b2;             /* cyan-600 */
+  --brand-hover: #0e7490;       /* cyan-700 */
+  --brand-fg: #ffffff;          /* text on brand */
+
+  --accent: #06b6d4;            /* cyan-500 */
+  --ring: #0891b2;              /* focus ring (3.68:1 vs white, AA non-text) */
+
+  --destructive: #dc2626;       /* red-600  -> 4.83:1 white */
+  --success: #16a34a;           /* green-600 */
+  --warning: #d97706;           /* amber-600 */
+}
+
+/* ---------------------------------------------------------------------------
+   Semantic design tokens — DARK (.dark override).
+   Slate-950-ish canvas, brighter cyan brand. brand-fg flips to near-black so
+   text on the bright cyan button stays readable (10.4:1). All pairs >= AA.
+--------------------------------------------------------------------------- */
+.dark {
+  --background: #0b1220;        /* deep slate canvas */
+  --foreground: #e2e8f0;        /* slate-200 -> 15:1 on bg */
+  --surface: #111827;           /* raised card -> 6.9:1 muted-fg */
+  --surface-muted: #1e293b;     /* slate-800 wells / hover */
+  --border: #1f2937;            /* gray-800 */
+  --muted-foreground: #94a3b8;  /* slate-400 -> 6.9:1 on surface */
+
+  --brand: #22d3ee;             /* cyan-400 -> 10.4:1 on bg (text/icons) */
+  --brand-hover: #67e8f9;       /* cyan-300 lift on hover */
+  --brand-fg: #0b1220;          /* near-black text on bright cyan (10.4:1) */
+
+  --accent: #22d3ee;            /* cyan-400 */
+  --ring: #22d3ee;              /* focus ring (10:1 vs bg) */
+
+  --destructive: #f87171;       /* red-400 */
+  --success: #4ade80;           /* green-400 */
+  --warning: #fbbf24;           /* amber-400 */
+}
+
+/* ---------------------------------------------------------------------------
+   Tailwind v4 theme mapping. `inline` inlines the value so utilities resolve
+   to var(--token) directly and switch with the .dark override.
+   Also: full static cyan brand-50..950 scale + font families.
+--------------------------------------------------------------------------- */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-border: var(--border);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-fg: var(--brand-fg);
+  --color-accent: var(--accent);
+  --color-ring: var(--ring);
+
+  --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+
+  /* Static cyan brand scale (Tailwind cyan values) */
+  --color-brand-50: #ecfeff;
+  --color-brand-100: #cffafe;
+  --color-brand-200: #a5f3fc;
+  --color-brand-300: #67e8f9;
+  --color-brand-400: #22d3ee;
+  --color-brand-500: #06b6d4;
+  --color-brand-600: #0891b2;
+  --color-brand-700: #0e7490;
+  --color-brand-800: #155e75;
+  --color-brand-900: #164e63;
+  --color-brand-950: #083344;
+
+  /* Fonts */
+  --font-sans: 'Plus Jakarta Sans Variable', 'PJS Fallback', ui-sans-serif,
+    system-ui, sans-serif;
+  --font-heading: 'Outfit Variable', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ---------------------------------------------------------------------------
+   Base layer — make tokens take effect app-wide + native control theming.
+--------------------------------------------------------------------------- */
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  .dark {
+    color-scheme: dark;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}

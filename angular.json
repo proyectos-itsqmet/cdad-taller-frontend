@@ -25,6 +25,8 @@
               }
             ],
             "styles": [
+              "@fontsource-variable/plus-jakarta-sans/index.css",
+              "@fontsource-variable/outfit/index.css",
               "src/styles.css"
             ],
             "server": "src/main.server.ts",

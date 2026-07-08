@@ -1,0 +1,176 @@
+<kubo-public-nav />
+
+<main id="contenido" class="flex min-h-dvh flex-col">
+  <!-- Hero -->
+  <section class="relative overflow-hidden border-b border-border">
+    <div
+      class="pointer-events-none absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-brand-500/10 blur-3xl"
+      aria-hidden="true"
+    ></div>
+    <div class="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+      <div kuboReveal class="mx-auto max-w-2xl text-center">
+        <span
+          class="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3.5 py-1.5 text-xs font-medium text-muted-foreground"
+        >
+          <ng-icon name="lucideMessageCircle" class="text-sm text-brand" aria-hidden="true" />
+          Estamos para ayudarte
+        </span>
+        <h1 class="font-heading mt-5 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
+          Hablemos
+        </h1>
+        <p class="mt-4 text-lg text-muted-foreground">
+          ¿Tienes una pregunta, una idea o necesitas soporte? Escríbenos y el equipo de KuboDrive
+          te responderá lo antes posible.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Form + info -->
+  <section class="mx-auto w-full max-w-7xl flex-1 px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+    <div class="grid grid-cols-1 gap-8 lg:grid-cols-5 lg:gap-12">
+      <!-- Form card -->
+      <div kuboReveal class="lg:col-span-3">
+        <div class="bg-surface border border-border rounded-xl p-6 sm:p-8">
+          @if (!submitted()) {
+            <h2 class="font-heading text-xl font-semibold text-foreground">Envíanos un mensaje</h2>
+            <p class="mt-1 text-sm text-muted-foreground">
+              Completa el formulario y te contactaremos por correo.
+            </p>
+
+            <form class="mt-6 flex flex-col gap-5" (submit)="onSubmit($event)" novalidate>
+              <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                <div class="flex flex-col gap-1.5">
+                  <label for="contact-nombre" class="text-sm font-medium text-foreground">Nombre</label>
+                  <input
+                    id="contact-nombre"
+                    name="nombre"
+                    type="text"
+                    autocomplete="name"
+                    required
+                    placeholder="Tu nombre"
+                    class="min-h-11 w-full rounded-lg border border-border bg-background px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/70 transition-colors focus-visible:border-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  />
+                </div>
+                <div class="flex flex-col gap-1.5">
+                  <label for="contact-email" class="text-sm font-medium text-foreground">Correo electrónico</label>
+                  <input
+                    id="contact-email"
+                    name="email"
+                    type="email"
+                    autocomplete="email"
+                    required
+                    placeholder="tu@correo.com"
+                    class="min-h-11 w-full rounded-lg border border-border bg-background px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/70 transition-colors focus-visible:border-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  />
+                </div>
+              </div>
+
+              <div class="flex flex-col gap-1.5">
+                <label for="contact-asunto" class="text-sm font-medium text-foreground">Asunto</label>
+                <input
+                  id="contact-asunto"
+                  name="asunto"
+                  type="text"
+                  required
+                  placeholder="¿Sobre qué quieres hablar?"
+                  class="min-h-11 w-full rounded-lg border border-border bg-background px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/70 transition-colors focus-visible:border-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
+              </div>
+
+              <div class="flex flex-col gap-1.5">
+                <label for="contact-mensaje" class="text-sm font-medium text-foreground">Mensaje</label>
+                <textarea
+                  id="contact-mensaje"
+                  name="mensaje"
+                  rows="5"
+                  required
+                  placeholder="Cuéntanos en qué podemos ayudarte…"
+                  class="w-full resize-y rounded-lg border border-border bg-background px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/70 transition-colors focus-visible:border-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                ></textarea>
+              </div>
+
+              <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p class="text-xs text-muted-foreground">
+                  Esta es una maqueta de demostración: el formulario no envía datos.
+                </p>
+                <button
+                  type="submit"
+                  class="bg-brand text-brand-fg hover:bg-brand-hover font-semibold rounded-lg inline-flex min-h-11 items-center justify-center gap-2 px-5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
+                >
+                  <ng-icon name="lucideSend" class="text-base" aria-hidden="true" />
+                  Enviar mensaje
+                </button>
+              </div>
+            </form>
+          } @else {
+            <div class="flex flex-col items-center py-8 text-center" role="status" aria-live="polite">
+              <span class="flex size-14 items-center justify-center rounded-full bg-success/10 text-success">
+                <ng-icon name="lucideCheckCheck" class="text-3xl" aria-hidden="true" />
+              </span>
+              <h2 class="font-heading mt-5 text-xl font-semibold text-foreground">
+                ¡Gracias! Te contactaremos pronto
+              </h2>
+              <p class="mt-2 max-w-md text-sm text-muted-foreground">
+                Recibimos tu interés. Recuerda que esta es una versión de demostración de KuboDrive:
+                el mensaje no se envió a ningún servidor ni se guardó.
+              </p>
+              <button
+                type="button"
+                (click)="resetForm()"
+                class="mt-6 inline-flex min-h-11 items-center gap-2 rounded-lg border border-border bg-surface px-5 text-sm font-medium text-foreground transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
+              >
+                Enviar otro mensaje
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Info panel -->
+      <aside kuboReveal [delay]="120" class="lg:col-span-2">
+        <div class="bg-surface border border-border rounded-xl p-6 sm:p-8">
+          <h2 class="font-heading text-xl font-semibold text-foreground">Otras formas de contacto</h2>
+          <ul class="mt-6 flex flex-col gap-6">
+            @for (channel of channels; track channel.label) {
+              <li class="flex items-start gap-4">
+                <span class="flex size-11 shrink-0 items-center justify-center rounded-lg bg-brand-500/10 text-brand">
+                  <ng-icon [name]="channel.icon" class="text-xl" aria-hidden="true" />
+                </span>
+                <div class="min-w-0">
+                  <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    {{ channel.label }}
+                  </p>
+                  <p class="mt-0.5 break-words font-medium text-foreground">{{ channel.value }}</p>
+                  <p class="mt-0.5 text-sm text-muted-foreground">{{ channel.detail }}</p>
+                </div>
+              </li>
+            }
+          </ul>
+
+          <div class="mt-6 flex items-center gap-2 rounded-lg bg-surface-muted px-4 py-3 text-sm text-muted-foreground">
+            <ng-icon name="lucideClock" class="text-base text-brand" aria-hidden="true" />
+            Horario de atención: L–V, 9:00 a 18:00 (GMT-5)
+          </div>
+        </div>
+
+        <!-- FAQ cross-link -->
+        <div class="bg-surface border border-border rounded-xl mt-6 p-6 sm:p-8">
+          <h2 class="font-heading text-base font-semibold text-foreground">¿Prefieres resolverlo tú mismo?</h2>
+          <p class="mt-1 text-sm text-muted-foreground">
+            Consulta nuestras preguntas frecuentes y guías paso a paso.
+          </p>
+          <a
+            routerLink="/centro-de-ayuda"
+            class="mt-4 inline-flex min-h-11 items-center gap-2 rounded-lg text-sm font-semibold text-brand transition-colors hover:text-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            Ir al Centro de ayuda
+            <ng-icon name="lucideArrowRight" class="text-base" aria-hidden="true" />
+          </a>
+        </div>
+      </aside>
+    </div>
+  </section>
+</main>
+
+<kubo-public-footer />

@@ -1,0 +1,81 @@
+<div class="p-4 sm:p-6 lg:p-8 space-y-6">
+  <header class="flex items-start gap-3">
+    <span
+      class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand/10 text-brand"
+    >
+      <ng-icon name="lucideClock" class="text-xl" aria-hidden="true" />
+    </span>
+    <div class="min-w-0">
+      <h1 class="font-heading text-2xl font-bold text-foreground">Recientes</h1>
+      <p class="mt-0.5 text-sm text-muted-foreground">
+        {{ files().length }}
+        {{ files().length === 1 ? 'archivo' : 'archivos' }} ordenados por ultima
+        modificacion
+      </p>
+    </div>
+  </header>
+
+  @if (files().length === 0) {
+    <kubo-empty-state
+      icon="lucideClock"
+      title="Sin actividad reciente"
+      message="Los archivos que crees o modifiques van a aparecer aca."
+      actionLabel="Ir a mis archivos"
+      actionLink="/archivos"
+    />
+  } @else {
+    <ul
+      role="list"
+      class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+    >
+      @for (file of files(); track file.id) {
+        <li
+          class="flex flex-col rounded-xl border border-border bg-surface p-4 transition-colors hover:border-brand/40"
+        >
+          <button
+            type="button"
+            (click)="openDetails(file)"
+            [attr.aria-label]="'Ver detalles de ' + file.originalName"
+            class="flex w-full items-start gap-3 rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <kubo-file-icon [mime]="file.mimeType" size="2rem" />
+            <span class="min-w-0 flex-1">
+              <span class="block truncate font-medium text-foreground">
+                {{ file.originalName }}
+              </span>
+              <span class="mt-0.5 block text-xs text-muted-foreground">
+                {{ friendlyType(file.mimeType) }} ·
+                {{ formatBytes(file.size) }}
+              </span>
+            </span>
+          </button>
+
+          <div
+            class="mt-4 flex items-center justify-between gap-2 border-t border-border pt-3"
+          >
+            <span
+              class="inline-flex min-w-0 items-center gap-1.5 truncate text-xs text-muted-foreground"
+            >
+              <ng-icon name="lucideClock" class="text-sm" aria-hidden="true" />
+              Modificado {{ relativeTime(file.modifiedAt) }}
+            </span>
+            <a
+              [routerLink]="locationLink(file)"
+              [attr.aria-label]="'Abrir ubicacion de ' + file.originalName"
+              class="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-lg px-3 text-xs font-medium text-brand transition-colors hover:bg-brand/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <ng-icon
+                name="lucideFolderOpen"
+                class="text-base"
+                aria-hidden="true"
+              />
+              Abrir
+            </a>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+
+  <kubo-details-pane [file]="selectedFile()" [(open)]="detailsOpen" />
+</div>

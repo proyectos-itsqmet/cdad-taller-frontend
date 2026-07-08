@@ -1,0 +1,95 @@
+<header [class]="headerClass()">
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <div class="flex h-16 items-center gap-4">
+      <!-- Brand -->
+      <div class="flex flex-1 items-center">
+        <a
+          routerLink="/"
+          class="flex items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <span class="flex size-9 items-center justify-center rounded-xl bg-brand text-brand-fg shadow-sm">
+            <ng-icon name="lucideBox" class="text-xl" aria-hidden="true" />
+          </span>
+          <span class="font-heading text-lg font-bold tracking-tight text-foreground">KuboDrive</span>
+        </a>
+      </div>
+
+      <!-- Center anchors (lg+) -->
+      <nav class="hidden items-center gap-1 lg:flex" aria-label="Secciones">
+        @for (link of links; track link.fragment) {
+          <a
+            routerLink="/"
+            [fragment]="link.fragment"
+            class="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >{{ link.label }}</a>
+        }
+      </nav>
+
+      <!-- Right cluster -->
+      <div class="flex flex-1 items-center justify-end gap-2">
+        <div class="hidden lg:block">
+          <kubo-theme-toggle />
+        </div>
+
+        <a
+          routerLink="/login"
+          class="hidden h-10 items-center rounded-lg px-3 text-sm font-medium text-foreground transition-colors hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:inline-flex"
+        >Iniciar sesión</a>
+
+        <a
+          routerLink="/registro"
+          class="hidden h-10 items-center rounded-lg bg-brand px-4 text-sm font-semibold text-brand-fg transition-colors hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:inline-flex"
+        >Comenzar gratis</a>
+
+        <!-- Hamburger (< lg) -->
+        <button
+          type="button"
+          class="flex size-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-surface-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
+          [attr.aria-label]="menuOpen() ? 'Cerrar menú' : 'Abrir menú'"
+          [attr.aria-expanded]="menuOpen()"
+          aria-controls="public-mobile-menu"
+          (click)="toggleMenu()"
+        >
+          <ng-icon [name]="menuOpen() ? 'lucideX' : 'lucideMenu'" class="text-xl" aria-hidden="true" />
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile menu -->
+  @if (menuOpen()) {
+    <div
+      id="public-mobile-menu"
+      class="border-t border-border bg-surface lg:hidden"
+    >
+      <nav class="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-4 sm:px-6" aria-label="Navegación móvil">
+        @for (link of links; track link.fragment) {
+          <a
+            routerLink="/"
+            [fragment]="link.fragment"
+            (click)="closeMenu()"
+            class="flex h-11 items-center rounded-lg px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-surface-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >{{ link.label }}</a>
+        }
+
+        <span class="my-2 h-px bg-border" aria-hidden="true"></span>
+
+        <a
+          routerLink="/login"
+          (click)="closeMenu()"
+          class="flex h-11 items-center rounded-lg px-3 text-sm font-medium text-foreground transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >Iniciar sesión</a>
+
+        <a
+          routerLink="/registro"
+          (click)="closeMenu()"
+          class="flex h-11 items-center justify-center rounded-lg bg-brand px-4 text-sm font-semibold text-brand-fg transition-colors hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >Comenzar gratis</a>
+
+        <div class="pt-3">
+          <kubo-theme-toggle />
+        </div>
+      </nav>
+    </div>
+  }
+</header>
