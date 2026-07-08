@@ -1,0 +1,98 @@
+[
+  {
+    "id": "sh1",
+    "fileId": "fi6",
+    "sharedByUserId": "u1",
+    "sharedWithUserId": "u2",
+    "permissions": "WRITE",
+    "sharedAt": "2026-07-04T10:40:00.000Z"
+  },
+  {
+    "id": "sh2",
+    "fileId": "fi7",
+    "sharedByUserId": "u1",
+    "sharedWithUserId": "u3",
+    "permissions": "READ",
+    "sharedAt": "2026-07-07T20:05:00.000Z"
+  },
+  {
+    "id": "sh3",
+    "fileId": "fi17",
+    "sharedByUserId": "u1",
+    "sharedWithUserId": "u2",
+    "permissions": "READ",
+    "sharedAt": "2026-05-20T09:00:00.000Z"
+  },
+  {
+    "id": "sh4",
+    "fileId": "fi9",
+    "sharedByUserId": "u1",
+    "sharedWithUserId": "u4",
+    "permissions": "READ",
+    "sharedAt": "2026-05-11T08:30:00.000Z"
+  },
+  {
+    "id": "sh5",
+    "fileId": "fi19",
+    "sharedByUserId": "u1",
+    "sharedWithUserId": "u3",
+    "permissions": "WRITE",
+    "sharedAt": "2026-07-03T16:30:00.000Z"
+  },
+  {
+    "id": "sh6",
+    "fileId": "fi29",
+    "sharedByUserId": "u2",
+    "sharedWithUserId": "u1",
+    "permissions": "READ",
+    "sharedAt": "2026-07-01T16:00:00.000Z"
+  },
+  {
+    "id": "sh7",
+    "fileId": "fi30",
+    "sharedByUserId": "u2",
+    "sharedWithUserId": "u1",
+    "permissions": "WRITE",
+    "sharedAt": "2026-07-05T09:20:00.000Z"
+  },
+  {
+    "id": "sh8",
+    "fileId": "fi31",
+    "sharedByUserId": "u3",
+    "sharedWithUserId": "u1",
+    "permissions": "READ",
+    "sharedAt": "2026-07-02T11:00:00.000Z"
+  },
+  {
+    "id": "sh9",
+    "fileId": "fi32",
+    "sharedByUserId": "u3",
+    "sharedWithUserId": "u1",
+    "permissions": "WRITE",
+    "sharedAt": "2026-07-06T18:30:00.000Z"
+  },
+  {
+    "id": "sh10",
+    "fileId": "fi33",
+    "sharedByUserId": "u4",
+    "sharedWithUserId": "u1",
+    "permissions": "READ",
+    "sharedAt": "2026-07-04T12:00:00.000Z"
+  },
+  {
+    "id": "sh11",
+    "fileId": "fi34",
+    "sharedByUserId": "u4",
+    "sharedWithUserId": "u1",
+    "permissions": "READ",
+    "sharedAt": "2026-07-07T09:00:00.000Z"
+  },
+  {
+    "id": "sh12",
+    "fileId": "fi14",
+    "sharedByUserId": "u1",
+    "sharedWithUserId": "u4",
+    "permissions": "WRITE",
+    "sharedAt": "2026-07-05T13:30:00.000Z"
+  }
+]

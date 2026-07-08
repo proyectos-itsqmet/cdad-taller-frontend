@@ -1,0 +1,96 @@
+<footer class="border-t border-border bg-surface">
+  <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+    <div class="grid grid-cols-2 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+      <!-- Brand + tagline -->
+      <div class="col-span-2 flex flex-col gap-4 lg:col-span-1">
+        <a
+          routerLink="/"
+          class="flex items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <span class="flex size-9 items-center justify-center rounded-xl bg-brand text-brand-fg shadow-sm">
+            <ng-icon name="lucideBox" class="text-xl" aria-hidden="true" />
+          </span>
+          <span class="font-heading text-lg font-bold tracking-tight text-foreground">KuboDrive</span>
+        </a>
+        <p class="max-w-xs text-sm text-muted-foreground">
+          Tu nube segura para guardar, organizar y compartir archivos desde cualquier lugar.
+        </p>
+      </div>
+
+      <!-- Producto -->
+      <nav aria-labelledby="footer-producto" class="flex flex-col gap-3">
+        <h2 id="footer-producto" class="font-heading text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Producto
+        </h2>
+        <ul class="flex flex-col gap-2.5">
+          @for (item of productLinks; track item.fragment) {
+            <li>
+              <a
+                routerLink="/"
+                [fragment]="item.fragment"
+                class="rounded text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >{{ item.label }}</a>
+            </li>
+          }
+        </ul>
+      </nav>
+
+      <!-- Soporte -->
+      <nav aria-labelledby="footer-soporte" class="flex flex-col gap-3">
+        <h2 id="footer-soporte" class="font-heading text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Soporte
+        </h2>
+        <ul class="flex flex-col gap-2.5">
+          @for (item of supportLinks; track item.link) {
+            <li>
+              <a
+                [routerLink]="item.link"
+                class="rounded text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >{{ item.label }}</a>
+            </li>
+          }
+        </ul>
+      </nav>
+
+      <!-- Legal -->
+      <nav aria-labelledby="footer-legal" class="flex flex-col gap-3">
+        <h2 id="footer-legal" class="font-heading text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Legal
+        </h2>
+        <ul class="flex flex-col gap-2.5">
+          @for (label of legalLinks; track label) {
+            <li>
+              <button
+                type="button"
+                disabled
+                title="Disponible en la versión completa"
+                class="cursor-not-allowed rounded text-left text-sm text-muted-foreground/70"
+              >{{ label }}</button>
+            </li>
+          }
+        </ul>
+      </nav>
+    </div>
+
+    <!-- Bottom bar -->
+    <div class="mt-12 flex flex-col gap-6 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+        <p class="text-sm text-muted-foreground">© 2026 KuboDrive</p>
+        <div class="flex items-center gap-1">
+          @for (social of socials; track social.icon) {
+            <button
+              type="button"
+              [attr.aria-label]="social.label"
+              [title]="social.label"
+              class="flex size-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-surface-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <ng-icon [name]="social.icon" class="text-lg" aria-hidden="true" />
+            </button>
+          }
+        </div>
+      </div>
+
+      <kubo-theme-toggle />
+    </div>
+  </div>
+</footer>

@@ -1,0 +1,208 @@
+<div class="flex flex-col gap-6">
+  <div>
+    <h2 class="font-heading text-xl font-semibold text-foreground">Administrar cuenta</h2>
+    <p class="mt-1 text-sm text-muted-foreground">
+      Actualizá tu información personal y revisá tu plan.
+    </p>
+  </div>
+
+  <!-- Perfil -->
+  <section
+    class="rounded-xl border border-border bg-surface p-5 sm:p-6"
+    aria-labelledby="acc-perfil-h"
+  >
+    <h3 id="acc-perfil-h" class="font-heading text-base font-semibold text-foreground">Perfil</h3>
+
+    <div class="mt-5 flex flex-col gap-6 sm:flex-row sm:items-start">
+      <div class="flex items-center gap-4 sm:w-40 sm:shrink-0 sm:flex-col sm:gap-3 sm:text-center">
+        <kubo-user-avatar [user]="user()" [size]="80" />
+        <button
+          type="button"
+          disabled
+          [title]="mockTitle"
+          class="inline-flex min-h-11 cursor-not-allowed items-center justify-center rounded-lg border border-border bg-surface px-3 text-sm font-medium text-muted-foreground opacity-70"
+        >
+          Cambiar foto
+        </button>
+      </div>
+
+      <div class="grid flex-1 gap-4 sm:grid-cols-2">
+        <div class="flex flex-col gap-1.5 sm:col-span-2">
+          <label for="acc-name" class="text-sm font-medium text-foreground">
+            Nombre para mostrar
+          </label>
+          <input
+            id="acc-name"
+            type="text"
+            [value]="user().name"
+            autocomplete="name"
+            class="h-11 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1.5 sm:col-span-2">
+          <label for="acc-email" class="text-sm font-medium text-foreground">
+            Correo electrónico
+          </label>
+          <input
+            id="acc-email"
+            type="email"
+            [value]="user().email"
+            autocomplete="email"
+            class="h-11 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <label for="acc-lang" class="text-sm font-medium text-foreground">Idioma</label>
+          <select
+            id="acc-lang"
+            class="h-11 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <option>Español (Latinoamérica)</option>
+            <option>English (US)</option>
+            <option>Português (Brasil)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-6 flex justify-end border-t border-border pt-4">
+      <button
+        type="button"
+        disabled
+        [title]="mockTitle"
+        class="inline-flex min-h-11 cursor-not-allowed items-center justify-center rounded-lg bg-brand px-5 text-sm font-semibold text-brand-fg opacity-60"
+      >
+        Guardar cambios
+      </button>
+    </div>
+  </section>
+
+  <!-- Seguridad -->
+  <section
+    class="rounded-xl border border-border bg-surface p-5 sm:p-6"
+    aria-labelledby="acc-seg-h"
+  >
+    <div class="flex items-center gap-2.5">
+      <span class="flex size-9 items-center justify-center rounded-lg bg-brand/10 text-brand">
+        <ng-icon name="lucideShield" class="text-lg" aria-hidden="true" />
+      </span>
+      <h3 id="acc-seg-h" class="font-heading text-base font-semibold text-foreground">Seguridad</h3>
+    </div>
+
+    <ul class="mt-4 divide-y divide-border">
+      <li class="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div class="min-w-0">
+          <p class="flex items-center gap-2 text-sm font-medium text-foreground">
+            <ng-icon name="lucideLock" class="text-base text-muted-foreground" aria-hidden="true" />
+            Contraseña
+          </p>
+          <p class="mt-0.5 text-sm text-muted-foreground">
+            Actualizala periódicamente para mantener tu cuenta protegida.
+          </p>
+        </div>
+        <button
+          type="button"
+          disabled
+          [title]="mockTitle"
+          class="inline-flex min-h-11 shrink-0 cursor-not-allowed items-center justify-center rounded-lg border border-border bg-surface px-3 text-sm font-medium text-muted-foreground opacity-70"
+        >
+          Cambiar contraseña
+        </button>
+      </li>
+
+      <li class="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div class="min-w-0">
+          <p class="flex items-center gap-2 text-sm font-medium text-foreground">
+            <ng-icon name="lucideMonitor" class="text-base text-muted-foreground" aria-hidden="true" />
+            Sesiones activas
+          </p>
+          <p class="mt-0.5 text-sm text-muted-foreground">
+            1 sesión activa en este dispositivo.
+          </p>
+        </div>
+        <button
+          type="button"
+          disabled
+          [title]="mockTitle"
+          class="inline-flex min-h-11 shrink-0 cursor-not-allowed items-center justify-center rounded-lg border border-border bg-surface px-3 text-sm font-medium text-muted-foreground opacity-70"
+        >
+          Cerrar otras sesiones
+        </button>
+      </li>
+    </ul>
+  </section>
+
+  <!-- Plan -->
+  <section
+    class="rounded-xl border border-border bg-surface p-5 sm:p-6"
+    aria-labelledby="acc-plan-h"
+  >
+    <div class="flex items-center gap-2.5">
+      <span class="flex size-9 items-center justify-center rounded-lg bg-brand/10 text-brand">
+        <ng-icon name="lucideZap" class="text-lg" aria-hidden="true" />
+      </span>
+      <h3 id="acc-plan-h" class="font-heading text-base font-semibold text-foreground">Plan</h3>
+    </div>
+
+    <div class="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div class="min-w-0">
+        <div class="flex items-center gap-2">
+          <span class="font-heading text-lg font-semibold text-foreground">Plan Pro</span>
+          <span
+            class="inline-flex items-center rounded-full bg-success/15 px-2 py-0.5 text-xs font-semibold text-success"
+          >
+            Activo
+          </span>
+        </div>
+        <p class="mt-0.5 text-sm text-muted-foreground">
+          Incluye {{ formatBytes(quota()) }} de almacenamiento.
+        </p>
+      </div>
+      <button
+        type="button"
+        disabled
+        [title]="mockTitle"
+        class="inline-flex min-h-11 shrink-0 cursor-not-allowed items-center justify-center rounded-lg border border-border bg-surface px-3 text-sm font-medium text-muted-foreground opacity-70"
+      >
+        Cambiar de plan
+      </button>
+    </div>
+
+    <div class="mt-5 rounded-lg border border-border bg-surface-muted/50 p-4">
+      <kubo-storage-meter />
+    </div>
+  </section>
+
+  <!-- Zona de peligro -->
+  <section
+    class="rounded-xl border border-destructive/40 bg-destructive/5 p-5 sm:p-6"
+    aria-labelledby="acc-danger-h"
+  >
+    <div class="flex items-center gap-2.5">
+      <span
+        class="flex size-9 items-center justify-center rounded-lg bg-destructive/15 text-destructive"
+      >
+        <ng-icon name="lucideTrash2" class="text-lg" aria-hidden="true" />
+      </span>
+      <h3 id="acc-danger-h" class="font-heading text-base font-semibold text-destructive">
+        Zona de peligro
+      </h3>
+    </div>
+
+    <div class="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <p class="max-w-prose text-sm text-muted-foreground">
+        Cerrar tu cuenta es permanente: se eliminan tus archivos y no se puede deshacer.
+      </p>
+      <button
+        type="button"
+        disabled
+        [title]="mockTitle"
+        class="inline-flex min-h-11 shrink-0 cursor-not-allowed items-center justify-center rounded-lg bg-destructive px-4 text-sm font-semibold text-white opacity-60"
+      >
+        Cerrar cuenta
+      </button>
+    </div>
+  </section>
+</div>

@@ -1,0 +1,230 @@
+<div class="flex min-h-dvh flex-col bg-background lg:flex-row">
+  <!-- Brand panel (lg+) -->
+  <kubo-auth-brand-panel
+    class="hidden lg:flex lg:w-1/2"
+    headline="Creá tu cuenta en KuboDrive."
+    subtext="Empezá gratis y llevá tus archivos a un espacio ordenado, seguro y compartible."
+  />
+
+  <!-- Form column -->
+  <main class="flex w-full flex-1 flex-col items-center justify-center px-5 py-10 sm:px-8 lg:w-1/2">
+    <div class="w-full max-w-md">
+      <!-- Compact brand lockup (mobile only) -->
+      <a
+        routerLink="/"
+        class="mb-8 inline-flex items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
+      >
+        <span class="flex size-9 items-center justify-center rounded-xl bg-brand text-brand-fg shadow-sm">
+          <ng-icon name="lucideBox" class="text-xl" aria-hidden="true" />
+        </span>
+        <span class="font-heading text-lg font-bold tracking-tight text-foreground">KuboDrive</span>
+      </a>
+
+      <header class="mb-8">
+        <h1 class="font-heading text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+          Crear cuenta
+        </h1>
+        <p class="mt-2 text-sm text-muted-foreground">
+          Solo necesitás unos datos para comenzar.
+        </p>
+      </header>
+
+      <!-- Mockup notice -->
+      <div
+        class="mb-6 flex items-start gap-2.5 rounded-lg border border-border bg-surface-muted px-3.5 py-3 text-xs text-muted-foreground"
+        role="note"
+      >
+        <ng-icon name="lucideInfo" class="mt-0.5 shrink-0 text-base text-brand" aria-hidden="true" />
+        <span>Esta es una maqueta sin backend: el registro es solo demostrativo y no guarda datos.</span>
+      </div>
+
+      <form class="flex flex-col gap-5" novalidate (submit)="onSubmit($event)">
+        <!-- Name -->
+        <div class="flex flex-col gap-1.5">
+          <label for="reg-name" class="text-sm font-medium text-foreground">Nombre completo</label>
+          <div class="relative">
+            <span
+              class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground"
+              aria-hidden="true"
+            >
+              <ng-icon name="lucideUser" class="text-base" />
+            </span>
+            <input
+              id="reg-name"
+              name="name"
+              type="text"
+              autocomplete="name"
+              placeholder="Tu nombre"
+              [value]="name()"
+              (input)="onNameInput($event)"
+              (blur)="nameTouched.set(true)"
+              [attr.aria-invalid]="showNameError()"
+              [attr.aria-describedby]="showNameError() ? 'reg-name-error' : null"
+              class="h-11 w-full rounded-lg border bg-surface pl-10 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              [class.border-border]="!showNameError()"
+              [class.border-destructive]="showNameError()"
+            />
+          </div>
+          @if (showNameError()) {
+            <p id="reg-name-error" class="text-xs text-destructive" role="alert">{{ nameError() }}</p>
+          }
+        </div>
+
+        <!-- Email -->
+        <div class="flex flex-col gap-1.5">
+          <label for="reg-email" class="text-sm font-medium text-foreground">Correo electrónico</label>
+          <div class="relative">
+            <span
+              class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground"
+              aria-hidden="true"
+            >
+              <ng-icon name="lucideMail" class="text-base" />
+            </span>
+            <input
+              id="reg-email"
+              name="email"
+              type="email"
+              inputmode="email"
+              autocomplete="email"
+              placeholder="tucorreo@ejemplo.com"
+              [value]="email()"
+              (input)="onEmailInput($event)"
+              (blur)="emailTouched.set(true)"
+              [attr.aria-invalid]="showEmailError()"
+              [attr.aria-describedby]="showEmailError() ? 'reg-email-error' : null"
+              class="h-11 w-full rounded-lg border bg-surface pl-10 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              [class.border-border]="!showEmailError()"
+              [class.border-destructive]="showEmailError()"
+            />
+          </div>
+          @if (showEmailError()) {
+            <p id="reg-email-error" class="text-xs text-destructive" role="alert">{{ emailError() }}</p>
+          }
+        </div>
+
+        <!-- Password -->
+        <div class="flex flex-col gap-1.5">
+          <label for="reg-password" class="text-sm font-medium text-foreground">Contraseña</label>
+          <div class="relative">
+            <span
+              class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground"
+              aria-hidden="true"
+            >
+              <ng-icon name="lucideLock" class="text-base" />
+            </span>
+            <input
+              id="reg-password"
+              name="password"
+              [type]="showPassword() ? 'text' : 'password'"
+              autocomplete="new-password"
+              placeholder="Mínimo 8 caracteres"
+              [value]="password()"
+              (input)="onPasswordInput($event)"
+              (blur)="passwordTouched.set(true)"
+              [attr.aria-invalid]="showPasswordError()"
+              [attr.aria-describedby]="showPasswordError() ? 'reg-password-error' : null"
+              class="h-11 w-full rounded-lg border bg-surface pl-10 pr-11 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              [class.border-border]="!showPasswordError()"
+              [class.border-destructive]="showPasswordError()"
+            />
+            <button
+              type="button"
+              (click)="togglePassword()"
+              [attr.aria-label]="showPassword() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+              [attr.aria-pressed]="showPassword()"
+              class="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-lg text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <ng-icon [name]="showPassword() ? 'lucideEyeOff' : 'lucideEye'" class="text-base" aria-hidden="true" />
+            </button>
+          </div>
+          @if (showPasswordError()) {
+            <p id="reg-password-error" class="text-xs text-destructive" role="alert">{{ passwordError() }}</p>
+          }
+        </div>
+
+        <!-- Confirm password -->
+        <div class="flex flex-col gap-1.5">
+          <label for="reg-confirm" class="text-sm font-medium text-foreground">Confirmar contraseña</label>
+          <div class="relative">
+            <span
+              class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground"
+              aria-hidden="true"
+            >
+              <ng-icon name="lucideLock" class="text-base" />
+            </span>
+            <input
+              id="reg-confirm"
+              name="confirm"
+              [type]="showConfirm() ? 'text' : 'password'"
+              autocomplete="new-password"
+              placeholder="Repetí la contraseña"
+              [value]="confirm()"
+              (input)="onConfirmInput($event)"
+              (blur)="confirmTouched.set(true)"
+              [attr.aria-invalid]="showConfirmError()"
+              [attr.aria-describedby]="showConfirmError() ? 'reg-confirm-error' : null"
+              class="h-11 w-full rounded-lg border bg-surface pl-10 pr-11 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              [class.border-border]="!showConfirmError()"
+              [class.border-destructive]="showConfirmError()"
+            />
+            <button
+              type="button"
+              (click)="toggleConfirm()"
+              [attr.aria-label]="showConfirm() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+              [attr.aria-pressed]="showConfirm()"
+              class="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-lg text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <ng-icon [name]="showConfirm() ? 'lucideEyeOff' : 'lucideEye'" class="text-base" aria-hidden="true" />
+            </button>
+          </div>
+          @if (showConfirmError()) {
+            <p id="reg-confirm-error" class="text-xs text-destructive" role="alert">{{ confirmError() }}</p>
+          }
+        </div>
+
+        <!-- Terms -->
+        <div class="flex flex-col gap-1.5">
+          <label class="flex items-start gap-2.5 text-sm text-foreground">
+            <input
+              type="checkbox"
+              name="terms"
+              [checked]="acceptTerms()"
+              (change)="onTermsChange($event)"
+              [attr.aria-invalid]="showTermsError()"
+              [attr.aria-describedby]="showTermsError() ? 'reg-terms-error' : null"
+              class="mt-0.5 size-4 rounded border-border text-brand accent-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+            <span>Acepto los términos de servicio y la política de privacidad.</span>
+          </label>
+          @if (showTermsError()) {
+            <p id="reg-terms-error" class="text-xs text-destructive" role="alert">{{ termsError() }}</p>
+          }
+        </div>
+
+        <!-- Submit -->
+        <button
+          type="submit"
+          class="mt-1 inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-brand font-semibold text-brand-fg transition-colors hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        >
+          Crear cuenta
+          <ng-icon name="lucideArrowRight" class="text-base" aria-hidden="true" />
+        </button>
+      </form>
+
+      <!-- Divider -->
+      <div class="my-6 flex items-center gap-3" aria-hidden="true">
+        <span class="h-px flex-1 bg-border"></span>
+        <span class="text-xs font-medium uppercase tracking-wide text-muted-foreground">o</span>
+        <span class="h-px flex-1 bg-border"></span>
+      </div>
+
+      <p class="text-center text-sm text-muted-foreground">
+        ¿Ya tenés cuenta?
+        <a
+          routerLink="/login"
+          class="rounded font-semibold text-brand underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >Iniciá sesión</a>
+      </p>
+    </div>
+  </main>
+</div>

@@ -1,0 +1,139 @@
+<kubo-public-nav />
+
+<main id="contenido" class="flex min-h-dvh flex-col">
+  <!-- Hero + search -->
+  <section class="relative overflow-hidden border-b border-border">
+    <div
+      class="pointer-events-none absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-brand-500/10 blur-3xl"
+      aria-hidden="true"
+    ></div>
+    <div class="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+      <div kuboReveal class="mx-auto max-w-2xl text-center">
+        <span class="flex mx-auto size-14 items-center justify-center rounded-2xl bg-brand text-brand-fg shadow-sm">
+          <ng-icon name="lucideLifeBuoy" class="text-2xl" aria-hidden="true" />
+        </span>
+        <h1 class="font-heading mt-6 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
+          ¿Cómo podemos ayudarte?
+        </h1>
+        <p class="mt-4 text-lg text-muted-foreground">
+          Encuentra respuestas, guías y consejos para aprovechar KuboDrive al máximo.
+        </p>
+
+        <form class="mt-8" (submit)="$event.preventDefault()" role="search">
+          <div class="relative">
+            <span class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">
+              <ng-icon name="lucideSearch" class="text-xl" aria-hidden="true" />
+            </span>
+            <input
+              type="search"
+              name="q"
+              aria-label="Buscar en el centro de ayuda"
+              placeholder="Busca en el centro de ayuda…"
+              class="min-h-12 w-full rounded-xl border border-border bg-surface pl-12 pr-4 text-sm text-foreground placeholder:text-muted-foreground/70 shadow-sm transition-colors focus-visible:border-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+          </div>
+          <p class="mt-2 text-xs text-muted-foreground">
+            La búsqueda está disponible en la versión completa.
+          </p>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- Categories -->
+  <section class="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+    <div kuboReveal class="max-w-2xl">
+      <h2 class="font-heading text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+        Explora por tema
+      </h2>
+      <p class="mt-2 text-muted-foreground">
+        Elige una categoría para ver las guías relacionadas.
+      </p>
+    </div>
+
+    <ul class="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      @for (category of categories; track category.title; let i = $index) {
+        <li kuboReveal [delay]="i * 80">
+          <article class="bg-surface border border-border rounded-xl flex h-full flex-col p-6 transition-shadow hover:shadow-md motion-reduce:transition-none">
+            <span class="flex size-12 items-center justify-center rounded-xl bg-brand-500/10 text-brand">
+              <ng-icon [name]="category.icon" class="text-2xl" aria-hidden="true" />
+            </span>
+            <h3 class="font-heading mt-5 text-lg font-semibold text-foreground">{{ category.title }}</h3>
+            <p class="mt-2 flex-1 text-sm text-muted-foreground">{{ category.description }}</p>
+            <p class="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              <ng-icon name="lucideBookOpen" class="text-sm" aria-hidden="true" />
+              {{ category.articles }} artículos
+            </p>
+          </article>
+        </li>
+      }
+    </ul>
+  </section>
+
+  <!-- FAQ accordion -->
+  <section class="mx-auto w-full max-w-3xl flex-1 px-4 pb-12 sm:px-6 lg:px-8 lg:pb-16">
+    <div kuboReveal class="text-center">
+      <h2 class="font-heading text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+        Preguntas frecuentes
+      </h2>
+      <p class="mt-2 text-muted-foreground">Las dudas que más nos consultan.</p>
+    </div>
+
+    <div kuboReveal class="mt-8 flex flex-col gap-3">
+      @for (faq of faqs; track faq.question; let i = $index) {
+        <div class="bg-surface border border-border rounded-xl overflow-hidden">
+          <h3>
+            <button
+              type="button"
+              class="flex w-full items-center justify-between gap-4 px-5 py-4 text-left transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring motion-reduce:transition-none"
+              [attr.aria-expanded]="openFaq() === i"
+              [attr.aria-controls]="'faq-panel-' + i"
+              [id]="'faq-button-' + i"
+              (click)="toggleFaq(i)"
+            >
+              <span class="font-medium text-foreground">{{ faq.question }}</span>
+              <ng-icon
+                name="lucideChevronDown"
+                class="shrink-0 text-xl text-muted-foreground transition-transform duration-200 motion-reduce:transition-none"
+                [class.rotate-180]="openFaq() === i"
+                aria-hidden="true"
+              />
+            </button>
+          </h3>
+          @if (openFaq() === i) {
+            <div
+              [id]="'faq-panel-' + i"
+              role="region"
+              [attr.aria-labelledby]="'faq-button-' + i"
+              class="px-5 pb-4 text-sm leading-relaxed text-muted-foreground"
+            >
+              {{ faq.answer }}
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Still need help -->
+    <div kuboReveal class="bg-surface border border-border rounded-xl mt-8 flex flex-col items-center gap-4 p-8 text-center sm:flex-row sm:justify-between sm:text-left">
+      <div class="flex items-center gap-4">
+        <span class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-brand">
+          <ng-icon name="lucideMessageCircle" class="text-2xl" aria-hidden="true" />
+        </span>
+        <div>
+          <h2 class="font-heading text-base font-semibold text-foreground">¿No encontraste lo que buscabas?</h2>
+          <p class="mt-0.5 text-sm text-muted-foreground">Nuestro equipo estará encantado de ayudarte.</p>
+        </div>
+      </div>
+      <a
+        routerLink="/contacto"
+        class="bg-brand text-brand-fg hover:bg-brand-hover font-semibold rounded-lg inline-flex min-h-11 shrink-0 items-center gap-2 px-5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
+      >
+        Contáctanos
+        <ng-icon name="lucideArrowRight" class="text-base" aria-hidden="true" />
+      </a>
+    </div>
+  </section>
+</main>
+
+<kubo-public-footer />

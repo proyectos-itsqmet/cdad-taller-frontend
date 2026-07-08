@@ -1,0 +1,81 @@
+[
+  {
+    "id": "fo1",
+    "userId": "u1",
+    "parentId": null,
+    "name": "Proyectos",
+    "color": "#0891B2",
+    "createdAt": "2026-01-08T10:00:00.000Z"
+  },
+  {
+    "id": "fo2",
+    "userId": "u1",
+    "parentId": null,
+    "name": "Documentos",
+    "color": "#2563EB",
+    "createdAt": "2026-01-08T10:05:00.000Z"
+  },
+  {
+    "id": "fo3",
+    "userId": "u1",
+    "parentId": null,
+    "name": "Fotos",
+    "color": "#DB2777",
+    "createdAt": "2026-01-08T10:10:00.000Z"
+  },
+  {
+    "id": "fo4",
+    "userId": "u1",
+    "parentId": null,
+    "name": "Musica",
+    "color": "#7C3AED",
+    "createdAt": "2026-01-08T10:15:00.000Z"
+  },
+  {
+    "id": "fo5",
+    "userId": "u1",
+    "parentId": "fo1",
+    "name": "KuboDrive",
+    "color": "#06B6D4",
+    "createdAt": "2026-01-12T08:30:00.000Z"
+  },
+  {
+    "id": "fo6",
+    "userId": "u1",
+    "parentId": "fo1",
+    "name": "2026",
+    "createdAt": "2026-01-15T09:00:00.000Z"
+  },
+  {
+    "id": "fo7",
+    "userId": "u1",
+    "parentId": "fo6",
+    "name": "Diseno",
+    "color": "#EA580C",
+    "createdAt": "2026-02-03T13:20:00.000Z"
+  },
+  {
+    "id": "fo8",
+    "userId": "u1",
+    "parentId": "fo2",
+    "name": "Facturas",
+    "color": "#16A34A",
+    "createdAt": "2026-01-20T15:45:00.000Z"
+  },
+  {
+    "id": "fo9",
+    "userId": "u2",
+    "parentId": null,
+    "name": "Marketing",
+    "color": "#DB2777",
+    "createdAt": "2026-02-10T10:00:00.000Z"
+  },
+  {
+    "id": "fo10",
+    "userId": "u3",
+    "parentId": null,
+    "name": "Reportes",
+    "color": "#7C3AED",
+    "createdAt": "2026-03-04T11:30:00.000Z"
+  }
+]

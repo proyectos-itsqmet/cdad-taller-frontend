@@ -1,0 +1,152 @@
+<div class="flex flex-col gap-6">
+  <div>
+    <h2 class="font-heading text-xl font-semibold text-foreground">Tema</h2>
+    <p class="mt-1 text-sm text-muted-foreground">
+      Personalizá cómo se ve KuboDrive. Los cambios se aplican al instante.
+    </p>
+  </div>
+
+  <!-- Modo de tema -->
+  <section
+    class="rounded-xl border border-border bg-surface p-5 sm:p-6"
+    aria-labelledby="ap-theme-h"
+  >
+    <h3 id="ap-theme-h" class="font-heading text-base font-semibold text-foreground">
+      Modo de color
+    </h3>
+    <p class="mt-1 text-sm text-muted-foreground">
+      Ahora mismo se ve en modo
+      <span class="font-medium text-foreground">{{ theme.resolved() === 'dark' ? 'oscuro' : 'claro' }}</span>.
+    </p>
+
+    <div class="mt-4 grid gap-3 sm:grid-cols-3" role="radiogroup" aria-labelledby="ap-theme-h">
+      @for (opt of themeOptions; track opt.mode) {
+        <button
+          type="button"
+          role="radio"
+          [attr.aria-checked]="theme.mode() === opt.mode"
+          (click)="setTheme(opt.mode)"
+          [class]="theme.mode() === opt.mode
+            ? 'border-brand ring-2 ring-brand/40 bg-brand/5'
+            : 'border-border hover:border-brand/50 hover:bg-surface-muted/60'"
+          class="relative flex flex-col items-start gap-2 rounded-xl border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
+        >
+          <span
+            class="flex size-10 items-center justify-center rounded-lg text-xl"
+            [class]="theme.mode() === opt.mode ? 'bg-brand text-brand-fg' : 'bg-surface-muted text-muted-foreground'"
+          >
+            <ng-icon [name]="opt.icon" aria-hidden="true" />
+          </span>
+          <span class="text-sm font-semibold text-foreground">{{ opt.label }}</span>
+          <span class="text-xs text-muted-foreground">{{ opt.desc }}</span>
+          @if (theme.mode() === opt.mode) {
+            <span
+              class="absolute right-3 top-3 flex size-5 items-center justify-center rounded-full bg-brand text-brand-fg"
+            >
+              <ng-icon name="lucideCheck" class="text-xs" aria-hidden="true" />
+            </span>
+          }
+        </button>
+      }
+    </div>
+  </section>
+
+  <!-- Vista por defecto -->
+  <section
+    class="rounded-xl border border-border bg-surface p-5 sm:p-6"
+    aria-labelledby="ap-view-h"
+  >
+    <h3 id="ap-view-h" class="font-heading text-base font-semibold text-foreground">
+      Vista de archivos por defecto
+    </h3>
+    <p class="mt-1 text-sm text-muted-foreground">
+      Cómo se muestran tus archivos al abrir una carpeta.
+    </p>
+
+    <div class="mt-4 grid gap-3 sm:grid-cols-3" role="radiogroup" aria-labelledby="ap-view-h">
+      @for (opt of viewOptions; track opt.mode) {
+        <button
+          type="button"
+          role="radio"
+          [attr.aria-checked]="viewMode() === opt.mode"
+          (click)="setView(opt.mode)"
+          [class]="viewMode() === opt.mode
+            ? 'border-brand ring-2 ring-brand/40 bg-brand/5 text-foreground'
+            : 'border-border text-muted-foreground hover:border-brand/50 hover:bg-surface-muted/60'"
+          class="flex min-h-11 items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
+        >
+          <ng-icon [name]="opt.icon" class="text-xl" aria-hidden="true" />
+          <span class="text-sm font-medium">{{ opt.label }}</span>
+        </button>
+      }
+    </div>
+  </section>
+
+  <!-- Densidad + movimiento -->
+  <section
+    class="rounded-xl border border-border bg-surface p-5 sm:p-6"
+    aria-labelledby="ap-pref-h"
+  >
+    <h3 id="ap-pref-h" class="font-heading text-base font-semibold text-foreground">
+      Preferencias de interfaz
+    </h3>
+
+    <div class="mt-4 flex flex-col gap-5">
+      <!-- Densidad -->
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="min-w-0">
+          <p class="text-sm font-medium text-foreground">Densidad</p>
+          <p class="mt-0.5 text-sm text-muted-foreground">Espaciado entre elementos de las listas.</p>
+        </div>
+        <div
+          class="inline-flex items-center gap-0.5 self-start rounded-lg border border-border bg-surface p-1"
+          role="radiogroup"
+          aria-label="Densidad"
+        >
+          <button
+            type="button"
+            role="radio"
+            [attr.aria-checked]="density() === 'comodo'"
+            (click)="setDensity('comodo')"
+            [class]="density() === 'comodo' ? 'bg-brand text-brand-fg' : 'text-muted-foreground hover:bg-surface-muted hover:text-foreground'"
+            class="min-h-11 rounded-md px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
+          >
+            Cómodo
+          </button>
+          <button
+            type="button"
+            role="radio"
+            [attr.aria-checked]="density() === 'compacto'"
+            (click)="setDensity('compacto')"
+            [class]="density() === 'compacto' ? 'bg-brand text-brand-fg' : 'text-muted-foreground hover:bg-surface-muted hover:text-foreground'"
+            class="min-h-11 rounded-md px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
+          >
+            Compacto
+          </button>
+        </div>
+      </div>
+
+      <!-- Reducir movimiento -->
+      <div class="flex items-center justify-between gap-4 border-t border-border pt-5">
+        <div class="min-w-0">
+          <p id="ap-motion-label" class="text-sm font-medium text-foreground">Reducir movimiento</p>
+          <p class="mt-0.5 text-sm text-muted-foreground">Minimiza animaciones y transiciones.</p>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          [attr.aria-checked]="reduceMotion()"
+          aria-labelledby="ap-motion-label"
+          (click)="toggleMotion()"
+          [class]="reduceMotion() ? 'bg-brand' : 'bg-surface-muted'"
+          class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border border-border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
+        >
+          <span
+            [class]="reduceMotion() ? 'translate-x-5' : 'translate-x-0.5'"
+            class="inline-block size-5 rounded-full bg-white shadow transition-transform motion-reduce:transition-none"
+          ></span>
+        </button>
+      </div>
+    </div>
+  </section>
+</div>

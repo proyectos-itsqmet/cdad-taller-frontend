@@ -1,0 +1,218 @@
+<div class="flex min-h-dvh bg-background text-foreground">
+  <!-- Mobile backdrop -->
+  @if (sidebarOpen()) {
+    <button
+      type="button"
+      class="fixed inset-0 z-30 bg-black/50 lg:hidden"
+      aria-label="Cerrar menú"
+      (click)="closeSidebar()"
+    ></button>
+  }
+
+  <!-- Sidebar / off-canvas drawer -->
+  <aside
+    class="fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-border bg-surface transition-transform duration-200 ease-out motion-reduce:transition-none lg:sticky lg:top-0 lg:z-auto lg:h-dvh lg:translate-x-0"
+    [class.translate-x-0]="sidebarOpen()"
+    [class.-translate-x-full]="!sidebarOpen()"
+  >
+    <!-- Brand + mobile close -->
+    <div class="flex h-16 shrink-0 items-center justify-between px-4">
+      <a routerLink="/home" (click)="closeSidebar()" class="flex items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        <span class="flex size-9 items-center justify-center rounded-xl bg-brand text-brand-fg shadow-sm">
+          <ng-icon name="lucideBox" class="text-xl" aria-hidden="true" />
+        </span>
+        <span class="font-heading text-lg font-bold tracking-tight text-foreground">KuboDrive</span>
+      </a>
+      <button
+        type="button"
+        class="flex size-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-surface-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
+        aria-label="Cerrar menú"
+        (click)="closeSidebar()"
+      >
+        <ng-icon name="lucideX" class="text-xl" aria-hidden="true" />
+      </button>
+    </div>
+
+    <!-- Subir (mock / disabled) -->
+    <div class="px-4 pb-3">
+      <button
+        type="button"
+        disabled
+        title="Disponible en la versión completa"
+        class="flex h-11 w-full cursor-not-allowed items-center justify-center gap-2 rounded-lg bg-brand px-4 text-sm font-semibold text-brand-fg opacity-60"
+      >
+        <ng-icon name="lucideUpload" class="text-lg" aria-hidden="true" />
+        <span>Subir</span>
+      </button>
+    </div>
+
+    <!-- Primary nav -->
+    <nav class="flex-1 overflow-y-auto px-3 py-1" aria-label="Navegación principal">
+      <ul class="flex flex-col gap-1">
+        @for (link of navLinks; track link.path) {
+          <li>
+            <a
+              [routerLink]="link.path"
+              routerLinkActive="bg-brand/10 text-brand font-semibold"
+              (click)="closeSidebar()"
+              class="flex h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-surface-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <ng-icon [name]="link.icon" class="shrink-0 text-xl" aria-hidden="true" />
+              <span>{{ link.label }}</span>
+            </a>
+          </li>
+        }
+      </ul>
+    </nav>
+
+    <!-- Pinned footer: storage + settings + user -->
+    <div class="mt-auto flex flex-col gap-3 border-t border-border p-4">
+      <kubo-storage-meter />
+      <div class="flex items-center gap-2">
+        <a
+          routerLink="/configuracion"
+          routerLinkActive="bg-brand/10 text-brand"
+          (click)="closeSidebar()"
+          aria-label="Configuración"
+          title="Configuración"
+          class="flex size-11 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-surface-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <ng-icon name="lucideSettings" class="text-xl" aria-hidden="true" />
+        </a>
+        <a
+          routerLink="/configuracion"
+          (click)="closeSidebar()"
+          class="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg p-1.5 transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <kubo-user-avatar [user]="user()" [size]="36" />
+          <span class="flex min-w-0 flex-col">
+            <span class="truncate text-sm font-medium text-foreground">{{ user().name }}</span>
+            <span class="truncate text-xs text-muted-foreground">{{ user().email }}</span>
+          </span>
+        </a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Right column -->
+  <div class="flex min-w-0 flex-1 flex-col">
+    <!-- Topbar -->
+    <header
+      class="sticky top-0 z-20 flex h-16 shrink-0 items-center gap-2 border-b border-border bg-surface/80 px-4 backdrop-blur sm:gap-3 sm:px-6"
+    >
+      <!-- Hamburger (mobile) -->
+      <button
+        type="button"
+        class="flex size-11 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-surface-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
+        aria-label="Abrir menú"
+        [attr.aria-expanded]="sidebarOpen()"
+        (click)="toggleSidebar()"
+      >
+        <ng-icon name="lucideMenu" class="text-xl" aria-hidden="true" />
+      </button>
+
+      <!-- Brand (mobile only, sidebar carries it on desktop) -->
+      <a routerLink="/home" class="flex items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden">
+        <span class="flex size-8 items-center justify-center rounded-lg bg-brand text-brand-fg">
+          <ng-icon name="lucideBox" aria-hidden="true" />
+        </span>
+        <span class="font-heading text-base font-bold text-foreground">KuboDrive</span>
+      </a>
+
+      <!-- Global search -->
+      <div class="relative hidden max-w-md flex-1 sm:block">
+        <ng-icon
+          name="lucideSearch"
+          class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base text-muted-foreground"
+          aria-hidden="true"
+        />
+        <input
+          type="search"
+          placeholder="Buscar en KuboDrive"
+          aria-label="Buscar en KuboDrive"
+          class="h-10 w-full rounded-lg border border-border bg-surface-muted pl-10 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        />
+      </div>
+
+      <!-- Right cluster -->
+      <div class="ms-auto flex items-center gap-1 sm:gap-2">
+        <div class="hidden sm:block">
+          <kubo-theme-toggle />
+        </div>
+
+        <a
+          routerLink="/centro-de-ayuda"
+          aria-label="Centro de ayuda"
+          title="Centro de ayuda"
+          class="flex size-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-surface-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <ng-icon name="lucideCircleHelp" class="text-xl" aria-hidden="true" />
+        </a>
+
+        <!-- User menu -->
+        <div class="relative" (click)="$event.stopPropagation()">
+          <button
+            type="button"
+            class="flex items-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+            aria-label="Menú de usuario"
+            aria-haspopup="menu"
+            [attr.aria-expanded]="userMenuOpen()"
+            (click)="toggleUserMenu()"
+          >
+            <kubo-user-avatar [user]="user()" [size]="40" />
+          </button>
+
+          @if (userMenuOpen()) {
+            <div
+              class="absolute right-0 top-full z-40 mt-2 w-60 overflow-hidden rounded-xl border border-border bg-surface shadow-lg"
+              role="menu"
+              aria-label="Menú de usuario"
+            >
+              <div class="flex items-center gap-3 border-b border-border p-3">
+                <kubo-user-avatar [user]="user()" [size]="40" />
+                <div class="flex min-w-0 flex-col">
+                  <span class="truncate text-sm font-semibold text-foreground">{{ user().name }}</span>
+                  <span class="truncate text-xs text-muted-foreground">{{ user().email }}</span>
+                </div>
+              </div>
+              <div class="p-1">
+                <a
+                  routerLink="/configuracion"
+                  role="menuitem"
+                  (click)="closeUserMenu()"
+                  class="flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium text-foreground transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <ng-icon name="lucideUser" class="text-lg text-muted-foreground" aria-hidden="true" />
+                  <span>Perfil</span>
+                </a>
+                <a
+                  routerLink="/configuracion"
+                  role="menuitem"
+                  (click)="closeUserMenu()"
+                  class="flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium text-foreground transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <ng-icon name="lucideSettings" class="text-lg text-muted-foreground" aria-hidden="true" />
+                  <span>Ajustes</span>
+                </a>
+                <a
+                  routerLink="/"
+                  role="menuitem"
+                  (click)="closeUserMenu()"
+                  class="flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium text-destructive transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <ng-icon name="lucideLogOut" class="text-lg" aria-hidden="true" />
+                  <span>Cerrar sesión</span>
+                </a>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </header>
+
+    <!-- Main -->
+    <main class="min-w-0 flex-1">
+      <router-outlet />
+    </main>
+  </div>
+</div>

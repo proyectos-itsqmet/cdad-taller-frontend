@@ -1,0 +1,34 @@
+[
+  {
+    "id": "u1",
+    "email": "garaque@profermaco.com.ec",
+    "name": "Gerardo Araque",
+    "avatarColor": "#0891B2",
+    "createdAt": "2025-02-11T09:15:00.000Z",
+    "storageQuotaBytes": 17179869184
+  },
+  {
+    "id": "u2",
+    "email": "maria.lopez@profermaco.com.ec",
+    "name": "Maria Lopez",
+    "avatarColor": "#DB2777",
+    "createdAt": "2025-03-02T14:42:00.000Z",
+    "storageQuotaBytes": 17179869184
+  },
+  {
+    "id": "u3",
+    "email": "diego.fernandez@profermaco.com.ec",
+    "name": "Diego Fernandez",
+    "avatarColor": "#7C3AED",
+    "createdAt": "2025-05-19T11:05:00.000Z",
+    "storageQuotaBytes": 34359738368
+  },
+  {
+    "id": "u4",
+    "email": "sofia.torres@profermaco.com.ec",
+    "name": "Sofia Torres",
+    "avatarColor": "#EA580C",
+    "createdAt": "2025-08-27T16:30:00.000Z",
+    "storageQuotaBytes": 17179869184
+  }
+]
