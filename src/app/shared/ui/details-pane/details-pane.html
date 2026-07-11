@@ -66,18 +66,7 @@
         </div>
         <div class="flex items-start justify-between gap-3">
           <dt class="shrink-0 text-muted-foreground">Ubicación</dt>
-          <dd class="text-right font-medium text-foreground">{{ locationPath() }}</dd>
-        </div>
-        <div class="flex items-center justify-between gap-3">
-          <dt class="shrink-0 text-muted-foreground">Propietario</dt>
-          <dd class="flex items-center gap-2 font-medium text-foreground">
-            @if (owner(); as o) {
-              <kubo-user-avatar [user]="o" [size]="24" />
-              <span>{{ o.name }}</span>
-            } @else {
-              <span class="text-muted-foreground">Desconocido</span>
-            }
-          </dd>
+          <dd class="text-right font-medium text-foreground">{{ locationLabel }}</dd>
         </div>
         <div class="flex items-start justify-between gap-3">
           <dt class="shrink-0 text-muted-foreground">Modificado</dt>
@@ -88,50 +77,26 @@
           <dd class="text-right font-medium text-foreground">{{ relativeTime(f.createdAt) }}</dd>
         </div>
       </dl>
-
-      <!-- Shared with -->
-      <section class="space-y-3">
-        <h4 class="font-heading text-sm font-semibold text-foreground">Compartido con</h4>
-        @if (shares().length > 0) {
-          <ul class="space-y-2">
-            @for (row of shares(); track row.share.id) {
-              <li class="flex items-center gap-2">
-                <kubo-user-avatar [user]="row.user" [size]="28" />
-                <span class="min-w-0 flex-1 truncate text-sm text-foreground">{{ row.user.name }}</span>
-                <span
-                  class="inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium"
-                  [class]="permBadgeClass(row.share.permissions)"
-                >
-                  {{ permLabel(row.share.permissions) }}
-                </span>
-              </li>
-            }
-          </ul>
-        } @else {
-          <p class="text-sm text-muted-foreground">Este archivo no se ha compartido con nadie.</p>
-        }
-      </section>
     </div>
 
-    <!-- Actions (disabled in the read-only mockup) -->
+    <!-- Actions -->
     <div class="flex gap-2 border-t border-border p-4">
       <button
         type="button"
-        disabled
-        [title]="mockTooltip"
-        class="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-border bg-surface px-3 text-sm font-medium text-muted-foreground disabled:cursor-not-allowed disabled:opacity-60"
+        (click)="download()"
+        class="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-border bg-surface px-3 text-sm font-medium text-foreground transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <ng-icon name="lucideDownload" aria-hidden="true" />
         Descargar
       </button>
       <button
         type="button"
-        disabled
-        [title]="mockTooltip"
-        class="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-border bg-surface px-3 text-sm font-medium text-destructive disabled:cursor-not-allowed disabled:opacity-60"
+        [disabled]="deleting()"
+        (click)="remove()"
+        class="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-border bg-surface px-3 text-sm font-medium text-destructive transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
       >
         <ng-icon name="lucideTrash2" aria-hidden="true" />
-        Eliminar
+        {{ deleting() ? 'Eliminando…' : 'Eliminar' }}
       </button>
     </div>
   } @else {

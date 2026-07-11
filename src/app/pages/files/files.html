@@ -1,7 +1,7 @@
 <div class="p-4 sm:p-6 lg:p-8">
   <!-- ============================ Header ============================ -->
   <header class="flex flex-col gap-4">
-    <kubo-breadcrumbs [items]="crumbs()" />
+    <kubo-breadcrumbs [items]="crumbs" />
 
     <div class="flex flex-wrap items-end justify-between gap-3">
       <div class="min-w-0">
@@ -19,22 +19,25 @@
         </p>
       </div>
 
-      <!-- Read-only mock actions -->
       <div class="flex flex-wrap items-center gap-2">
+        <input
+          #fileInput
+          type="file"
+          class="hidden"
+          (change)="onFileSelected($event)"
+        />
         <button
           type="button"
-          disabled
-          [title]="mockTooltip"
-          class="flex h-10 cursor-not-allowed items-center gap-2 rounded-lg bg-brand px-3.5 text-sm font-semibold text-brand-fg opacity-60"
+          (click)="triggerUpload()"
+          class="flex h-10 items-center gap-2 rounded-lg bg-brand px-3.5 text-sm font-semibold text-brand-fg transition-colors hover:bg-brand-hover"
         >
           <ng-icon name="lucideUpload" class="text-base" aria-hidden="true" />
           <span>Subir</span>
         </button>
         <button
           type="button"
-          disabled
-          [title]="mockTooltip"
-          class="flex h-10 cursor-not-allowed items-center gap-2 rounded-lg border border-border bg-surface px-3.5 text-sm font-medium text-foreground opacity-60"
+          (click)="createFolder()"
+          class="flex h-10 items-center gap-2 rounded-lg border border-border bg-surface px-3.5 text-sm font-medium text-foreground transition-colors hover:bg-surface-muted"
         >
           <ng-icon name="lucidePlus" class="text-base" aria-hidden="true" />
           <span>Nueva carpeta</span>
@@ -81,7 +84,7 @@
   <!-- ============================= Body ============================= -->
   <section class="mt-6">
     @if (loading()) {
-      <!-- Simulated load -->
+      <!-- Loading -->
       @if (viewMode() === 'list') {
         <div class="rounded-xl border border-border bg-surface p-2">
           <kubo-skeleton variant="row" [count]="8" />
@@ -97,7 +100,7 @@
       <kubo-empty-state
         icon="lucideFolderOpen"
         title="Esta carpeta está vacía"
-        message="Aún no hay carpetas ni archivos aquí. En la versión completa podrás subir archivos o crear una carpeta."
+        message="Sube un archivo o crea una carpeta para empezar."
       />
     } @else if (noMatches()) {
       <kubo-empty-state
@@ -126,7 +129,6 @@
                       }
                     </button>
                   </th>
-                  <th scope="col" class="hidden w-40 px-3 py-2.5 lg:table-cell">Propietario</th>
                   <th scope="col" class="hidden w-32 px-3 py-2.5 sm:table-cell" [attr.aria-sort]="ariaSort('modified')">
                     <button
                       type="button"
@@ -163,8 +165,7 @@
                       }
                     </button>
                   </th>
-                  <th scope="col" class="hidden w-28 px-3 py-2.5 text-center md:table-cell">Compartido</th>
-                  <th scope="col" class="w-14 px-2 py-2.5"><span class="sr-only">Acciones</span></th>
+                  <th scope="col" class="w-20 px-2 py-2.5"><span class="sr-only">Acciones</span></th>
                 </tr>
               </thead>
               <tbody>
@@ -180,19 +181,33 @@
                         <span class="truncate font-medium text-foreground">{{ folder.name }}</span>
                       </a>
                     </td>
-                    <td class="hidden px-3 py-2 text-muted-foreground lg:table-cell">
-                      <span class="inline-flex items-center gap-2">
-                        <kubo-user-avatar [user]="ds.currentUser()" [size]="22" />
-                        <span class="rounded-md bg-surface-muted px-1.5 py-0.5 text-xs font-medium text-foreground">Yo</span>
-                      </span>
-                    </td>
                     <td class="hidden px-3 py-2 text-muted-foreground sm:table-cell" [title]="absoluteDate(folder.createdAt)">
                       {{ relativeTime(folder.createdAt) }}
                     </td>
-                    <td class="px-3 py-2 text-right text-muted-foreground">{{ folderCount(folder.id) || '—' }}</td>
+                    <td class="px-3 py-2 text-right text-muted-foreground">—</td>
                     <td class="hidden px-3 py-2 text-muted-foreground md:table-cell">Carpeta</td>
-                    <td class="hidden px-3 py-2 text-center text-muted-foreground md:table-cell">—</td>
-                    <td class="px-2 py-2"></td>
+                    <td class="px-2 py-2">
+                      <div class="flex items-center justify-end gap-0.5">
+                        <button
+                          type="button"
+                          aria-label="Renombrar carpeta"
+                          title="Renombrar carpeta"
+                          class="flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-surface-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          (click)="renameFolder(folder, $event)"
+                        >
+                          <ng-icon name="lucidePencil" class="text-base" aria-hidden="true" />
+                        </button>
+                        <button
+                          type="button"
+                          aria-label="Eliminar carpeta"
+                          title="Eliminar carpeta"
+                          class="flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-surface-muted hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          (click)="deleteFolder(folder, $event)"
+                        >
+                          <ng-icon name="lucideTrash2" class="text-base" aria-hidden="true" />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 }
                 <!-- Files -->
@@ -207,20 +222,7 @@
                       >
                         <kubo-file-icon [mime]="file.mimeType" size="1.375rem" />
                         <span class="truncate font-medium text-foreground">{{ file.originalName }}</span>
-                        @if (isStarred(file)) {
-                          <ng-icon name="lucideStar" class="shrink-0 text-sm text-warning" aria-label="Destacado" />
-                        }
                       </button>
-                    </td>
-                    <td class="hidden px-3 py-2 text-muted-foreground lg:table-cell">
-                      <span class="inline-flex items-center gap-2">
-                        <kubo-user-avatar [user]="ds.currentUser()" [size]="22" />
-                        @if (isMine(file)) {
-                          <span class="rounded-md bg-surface-muted px-1.5 py-0.5 text-xs font-medium text-foreground">Yo</span>
-                        } @else {
-                          <span class="truncate">{{ owner(file)?.name }}</span>
-                        }
-                      </span>
                     </td>
                     <td class="hidden px-3 py-2 text-muted-foreground sm:table-cell" [title]="absoluteDate(file.modifiedAt)">
                       {{ relativeTime(file.modifiedAt) }}
@@ -229,26 +231,16 @@
                     <td class="hidden px-3 py-2 text-muted-foreground md:table-cell">
                       <span class="block truncate">{{ friendlyType(file.mimeType) }}</span>
                     </td>
-                    <td class="hidden px-3 py-2 text-center md:table-cell">
-                      @if (isShared(file)) {
-                        <ng-icon name="lucideShare2" class="text-base text-brand" [attr.aria-label]="shareLabel(file)" [title]="shareLabel(file)" />
-                      } @else {
-                        <span class="text-muted-foreground" title="Privado">—</span>
-                      }
-                    </td>
                     <td class="px-2 py-2">
                       <div class="flex items-center justify-end gap-0.5">
-                        <button
-                          type="button"
-                          class="flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-surface-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                          [attr.aria-pressed]="isStarred(file)"
-                          [attr.aria-label]="isStarred(file) ? 'Quitar de destacados' : 'Marcar como destacado'"
-                          [title]="isStarred(file) ? 'Quitar de destacados' : 'Marcar como destacado'"
-                          (click)="toggleStar(file, $event)"
-                        >
-                          <ng-icon name="lucideStar" class="text-base" [class.text-warning]="isStarred(file)" aria-hidden="true" />
-                        </button>
-                        <kubo-file-menu [file]="file" (details)="openDetails(file)" (share)="openShare(file)" />
+                        <kubo-file-menu
+                          [file]="file"
+                          (details)="openDetails(file)"
+                          (share)="openShare(file)"
+                          (download)="downloadFile(file)"
+                          (rename)="renameFile(file)"
+                          (delete)="deleteFile(file)"
+                        />
                       </div>
                     </td>
                   </tr>
@@ -267,16 +259,33 @@
                 <ul class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" role="list">
                   @for (folder of visibleFolders(); track folder.id) {
                     <li>
-                      <a
-                        [routerLink]="['/archivos', folder.id]"
-                        class="flex items-center gap-3 rounded-lg border border-border bg-surface px-3 py-2.5 transition-colors hover:border-brand/40 hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      >
-                        <kubo-file-icon kind="folder" size="1.5rem" />
-                        <span class="min-w-0 flex-1">
-                          <span class="block truncate text-sm font-medium text-foreground">{{ folder.name }}</span>
-                          <span class="block text-xs text-muted-foreground">{{ folderCountLabel(folder.id) }}</span>
-                        </span>
-                      </a>
+                      <div class="group relative flex items-center gap-1 rounded-lg border border-border bg-surface pr-1 transition-colors hover:border-brand/40 hover:bg-surface-muted">
+                        <a
+                          [routerLink]="['/archivos', folder.id]"
+                          class="flex min-w-0 flex-1 items-center gap-3 px-3 py-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                          <kubo-file-icon kind="folder" size="1.5rem" />
+                          <span class="block min-w-0 flex-1 truncate text-sm font-medium text-foreground">{{ folder.name }}</span>
+                        </a>
+                        <button
+                          type="button"
+                          aria-label="Renombrar carpeta"
+                          title="Renombrar carpeta"
+                          class="flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground opacity-0 transition-opacity hover:bg-surface hover:text-foreground focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-hover:opacity-100"
+                          (click)="renameFolder(folder, $event)"
+                        >
+                          <ng-icon name="lucidePencil" class="text-sm" aria-hidden="true" />
+                        </button>
+                        <button
+                          type="button"
+                          aria-label="Eliminar carpeta"
+                          title="Eliminar carpeta"
+                          class="flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground opacity-0 transition-opacity hover:bg-surface hover:text-destructive focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-hover:opacity-100"
+                          (click)="deleteFolder(folder, $event)"
+                        >
+                          <ng-icon name="lucideTrash2" class="text-sm" aria-hidden="true" />
+                        </button>
+                      </div>
                     </li>
                   }
                 </ul>
@@ -300,23 +309,17 @@
                             <span class="block truncate text-sm font-medium text-foreground">{{ file.originalName }}</span>
                             <span class="flex items-center gap-1.5 text-xs text-muted-foreground">
                               {{ formatBytes(file.size) }}
-                              @if (isShared(file)) {
-                                <ng-icon name="lucideShare2" class="text-brand" [attr.aria-label]="shareLabel(file)" [title]="shareLabel(file)" />
-                              }
                             </span>
                           </span>
                         </button>
-                        <button
-                          type="button"
-                          class="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-surface-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                          [attr.aria-pressed]="isStarred(file)"
-                          [attr.aria-label]="isStarred(file) ? 'Quitar de destacados' : 'Marcar como destacado'"
-                          [title]="isStarred(file) ? 'Quitar de destacados' : 'Marcar como destacado'"
-                          (click)="toggleStar(file, $event)"
-                        >
-                          <ng-icon name="lucideStar" class="text-base" [class.text-warning]="isStarred(file)" aria-hidden="true" />
-                        </button>
-                        <kubo-file-menu [file]="file" (details)="openDetails(file)" (share)="openShare(file)" />
+                        <kubo-file-menu
+                          [file]="file"
+                          (details)="openDetails(file)"
+                          (share)="openShare(file)"
+                          (download)="downloadFile(file)"
+                          (rename)="renameFile(file)"
+                          (delete)="deleteFile(file)"
+                        />
                       </div>
                     </li>
                   }
@@ -335,16 +338,38 @@
                 <ul class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6" role="list">
                   @for (folder of visibleFolders(); track folder.id) {
                     <li>
-                      <a
-                        [routerLink]="['/archivos', folder.id]"
-                        class="flex flex-col items-center gap-3 rounded-xl border border-border bg-surface p-4 text-center transition-colors hover:border-brand/40 hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      >
-                        <kubo-file-icon kind="folder" size="2.5rem" />
-                        <span class="w-full min-w-0">
-                          <span class="block truncate text-sm font-medium text-foreground">{{ folder.name }}</span>
-                          <span class="mt-0.5 block text-xs text-muted-foreground">{{ folderCountLabel(folder.id) }}</span>
-                        </span>
-                      </a>
+                      <div class="group relative flex flex-col rounded-xl border border-border bg-surface transition-colors hover:border-brand/40">
+                        <div class="absolute right-1.5 top-1.5 z-10 flex items-center gap-0.5 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+                          <button
+                            type="button"
+                            aria-label="Renombrar carpeta"
+                            title="Renombrar carpeta"
+                            class="flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-surface-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            (click)="renameFolder(folder, $event)"
+                          >
+                            <ng-icon name="lucidePencil" class="text-base" aria-hidden="true" />
+                          </button>
+                          <button
+                            type="button"
+                            aria-label="Eliminar carpeta"
+                            title="Eliminar carpeta"
+                            class="flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-surface-muted hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            (click)="deleteFolder(folder, $event)"
+                          >
+                            <ng-icon name="lucideTrash2" class="text-base" aria-hidden="true" />
+                          </button>
+                        </div>
+
+                        <a
+                          [routerLink]="['/archivos', folder.id]"
+                          class="flex flex-col items-center gap-3 p-4 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                        >
+                          <kubo-file-icon kind="folder" size="2.5rem" />
+                          <span class="w-full min-w-0">
+                            <span class="block truncate text-sm font-medium text-foreground">{{ folder.name }}</span>
+                          </span>
+                        </a>
+                      </div>
                     </li>
                   }
                 </ul>
@@ -358,17 +383,14 @@
                     <li>
                       <div class="group relative flex flex-col rounded-xl border border-border bg-surface transition-colors hover:border-brand/40">
                         <div class="absolute right-1.5 top-1.5 z-10 flex items-center gap-0.5">
-                          <button
-                            type="button"
-                            class="flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-surface-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                            [attr.aria-pressed]="isStarred(file)"
-                            [attr.aria-label]="isStarred(file) ? 'Quitar de destacados' : 'Marcar como destacado'"
-                            [title]="isStarred(file) ? 'Quitar de destacados' : 'Marcar como destacado'"
-                            (click)="toggleStar(file, $event)"
-                          >
-                            <ng-icon name="lucideStar" class="text-base" [class.text-warning]="isStarred(file)" aria-hidden="true" />
-                          </button>
-                          <kubo-file-menu [file]="file" (details)="openDetails(file)" (share)="openShare(file)" />
+                          <kubo-file-menu
+                            [file]="file"
+                            (details)="openDetails(file)"
+                            (share)="openShare(file)"
+                            (download)="downloadFile(file)"
+                            (rename)="renameFile(file)"
+                            (delete)="deleteFile(file)"
+                          />
                         </div>
 
                         <button
@@ -386,12 +408,7 @@
 
                         <div class="flex items-center justify-between gap-2 border-t border-border px-3 py-2 text-xs text-muted-foreground">
                           <span class="truncate" [title]="absoluteDate(file.modifiedAt)">{{ relativeTime(file.modifiedAt) }}</span>
-                          <span class="flex shrink-0 items-center gap-1.5">
-                            <span>{{ formatBytes(file.size) }}</span>
-                            @if (isShared(file)) {
-                              <ng-icon name="lucideShare2" class="text-brand" [attr.aria-label]="shareLabel(file)" [title]="shareLabel(file)" />
-                            }
-                          </span>
+                          <span class="shrink-0">{{ formatBytes(file.size) }}</span>
                         </div>
                       </div>
                     </li>
@@ -407,5 +424,5 @@
 </div>
 
 <!-- Shared overlays: rendered once near the page root -->
-<kubo-details-pane [file]="selected()" [(open)]="detailsOpen" />
+<kubo-details-pane [file]="selected()" [(open)]="detailsOpen" (deleted)="onFileDeleted($event)" />
 <kubo-share-dialog [file]="selected()" [(open)]="shareOpen" />

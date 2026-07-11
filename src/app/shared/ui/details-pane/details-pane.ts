@@ -1,14 +1,18 @@
+import { isPlatformBrowser } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
   ElementRef,
+  PLATFORM_ID,
   afterNextRender,
   afterRenderEffect,
   computed,
   inject,
   input,
   model,
+  output,
+  signal,
   viewChild,
 } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
@@ -19,8 +23,8 @@ import {
   lucideX,
 } from '@ng-icons/lucide';
 
-import { DataService } from '../../../core/data/data.service';
-import { FileItem, Permission } from '../../../core/models/models';
+import { FileApiService } from '../../../core/api/file-api.service';
+import { FileItem } from '../../../core/models/models';
 import {
   fileKind,
   formatBytes,
@@ -28,17 +32,19 @@ import {
   relativeTime,
 } from '../../../core/util/format';
 import { FileIcon } from '../file-icon/file-icon';
-import { UserAvatar } from '../user-avatar/user-avatar';
-
-/** Tooltip shown on every action disabled in this read-only mockup. */
-const MOCK_TOOLTIP = 'Disponible en la version completa';
 
 /**
- * kubo-details-pane — right-side slide-in drawer showing metadata and sharing
- * info for a single selected file.
+ * kubo-details-pane — right-side slide-in drawer showing metadata for a
+ * single selected file.
  *
  * Usage:
- *   <kubo-details-pane [file]="selected()" [(open)]="detailsOpen" />
+ *   <kubo-details-pane [file]="selected()" [(open)]="detailsOpen" (deleted)="..." />
+ *
+ * The backend has no owner/sharing-list/folder-ancestry endpoints, so this
+ * pane only shows metadata it can actually back with real API calls:
+ * download (pre-signed URL) and delete. Deletion is delegated to the parent
+ * via the `deleted` output — this component never reloads the listing
+ * itself, since the parent (`Files`) owns the `httpResource`.
  *
  * The drawer is always in the DOM (translated off-screen when closed) so the
  * slide transition works. Browser-only concerns (ESC key, focus) are guarded
@@ -47,28 +53,33 @@ const MOCK_TOOLTIP = 'Disponible en la version completa';
 @Component({
   selector: 'kubo-details-pane',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NgIcon, FileIcon, UserAvatar],
+  imports: [NgIcon, FileIcon],
   providers: [
     provideIcons({ lucideX, lucideDownload, lucideTrash2, lucideImage }),
   ],
   templateUrl: './details-pane.html',
 })
 export class DetailsPane {
-  private readonly data = inject(DataService);
+  private readonly fileApi = inject(FileApiService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly platformId = inject(PLATFORM_ID);
 
   /** File whose details are shown. `null` renders an empty prompt. */
   readonly file = input<FileItem | null>(null);
   /** Whether the drawer is visible. Two-way bindable via `[(open)]`. */
   readonly open = model<boolean>(false);
-
-  /** Mock tooltip exposed to the template. */
-  protected readonly mockTooltip = MOCK_TOOLTIP;
+  /** Emitted after the file was deleted, so the parent can reload/clear selection. */
+  readonly deleted = output<FileItem>();
 
   /** Pure formatters surfaced for the template. */
   protected readonly friendlyType = friendlyType;
   protected readonly formatBytes = formatBytes;
   protected readonly relativeTime = relativeTime;
+
+  /** Static — the backend has no folder-ancestry endpoint to rebuild a real path. */
+  protected readonly locationLabel = 'Mi unidad';
+
+  protected readonly deleting = signal(false);
 
   private readonly closeBtn =
     viewChild<ElementRef<HTMLButtonElement>>('closeBtn');
@@ -77,26 +88,6 @@ export class DetailsPane {
   protected readonly isImage = computed(() => {
     const f = this.file();
     return !!f && fileKind(f.mimeType) === 'image';
-  });
-
-  /** Owner of the current file. */
-  protected readonly owner = computed(() => {
-    const f = this.file();
-    return f ? this.data.userById(f.userId) : undefined;
-  });
-
-  /** "Mi unidad / A / B" path derived from the file's folder chain. */
-  protected readonly locationPath = computed(() => {
-    const f = this.file();
-    if (!f) return 'Mi unidad';
-    const chain = this.data.breadcrumb(f.folderId);
-    return ['Mi unidad', ...chain.map((c) => c.name)].join(' / ');
-  });
-
-  /** Recipients this file is shared with. */
-  protected readonly shares = computed(() => {
-    const f = this.file();
-    return f ? this.data.sharesForFile(f.id) : [];
   });
 
   /** Remembers what had focus before the drawer opened. */
@@ -131,16 +122,34 @@ export class DetailsPane {
     });
   }
 
-  /** Human label for a share permission. */
-  protected permLabel(p: Permission): string {
-    return p === 'WRITE' ? 'Puede editar' : 'Puede ver';
+  /** Fetches a pre-signed download URL and triggers a browser download. */
+  protected async download(): Promise<void> {
+    if (!isPlatformBrowser(this.platformId)) return;
+    const f = this.file();
+    if (!f) return;
+
+    const url = await this.fileApi.getDownloadUrl(f.id);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = f.originalName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
   }
 
-  /** Badge classes per permission (color reinforces the text label, never alone). */
-  protected permBadgeClass(p: Permission): string {
-    return p === 'WRITE'
-      ? 'bg-brand/10 text-brand'
-      : 'bg-surface-muted text-muted-foreground';
+  /** Deletes the file, then lets the parent reload/clear selection. */
+  protected async remove(): Promise<void> {
+    const f = this.file();
+    if (!f || this.deleting()) return;
+
+    this.deleting.set(true);
+    try {
+      await this.fileApi.remove(f.id);
+      this.deleted.emit(f);
+      this.close();
+    } finally {
+      this.deleting.set(false);
+    }
   }
 
   protected close(): void {

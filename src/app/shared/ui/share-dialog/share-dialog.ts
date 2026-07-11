@@ -1,7 +1,6 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  DestroyRef,
   ElementRef,
   afterRenderEffect,
   computed,
@@ -12,56 +11,40 @@ import {
   viewChild,
 } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import {
-  lucideCheck,
-  lucideLink,
-  lucideMail,
-  lucideUsers,
-  lucideX,
-} from '@ng-icons/lucide';
+import { lucideCheck, lucideMail, lucideX } from '@ng-icons/lucide';
 
-import { DataService } from '../../../core/data/data.service';
-import { FileItem, FileShare, Permission, User } from '../../../core/models/models';
-import { UserAvatar } from '../user-avatar/user-avatar';
-
-/** Tooltip shown on every action disabled in this read-only mockup. */
-const MOCK_TOOLTIP = 'Disponible en la version completa';
-
-/** Row shape returned by DataService.sharesForFile(). */
-type ShareRow = { share: FileShare; user: User };
+import { FileApiService } from '../../../core/api/file-api.service';
+import { FileItem } from '../../../core/models/models';
 
 /**
- * kubo-share-dialog — centered modal for managing who a file is shared with.
+ * kubo-share-dialog — centered modal to invite another user (by email) to
+ * view a file.
  *
  * Usage:
  *   <kubo-share-dialog [file]="selected()" [(open)]="shareOpen" />
  *
- * Fully illustrative: the invite input and per-person controls render but do
- * not mutate anything. "Copiar enlace" only flashes visual feedback. ESC,
- * backdrop click and "Listo" all close. Focus is trapped inside the dialog and
+ * The backend only exposes a create-share (read-only) endpoint — there is no
+ * list-shares, revoke, or permission-level API, so this dialog is a single
+ * email input + submit, with an inline success/error message. ESC, backdrop
+ * click and "Cerrar" all close. Focus is trapped inside the dialog and
  * restored to the trigger on close. All DOM access is browser-guarded via
  * afterRenderEffect, which never runs during SSR.
  */
 @Component({
   selector: 'kubo-share-dialog',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NgIcon, UserAvatar],
-  providers: [
-    provideIcons({ lucideX, lucideLink, lucideCheck, lucideMail, lucideUsers }),
-  ],
+  imports: [NgIcon],
+  providers: [provideIcons({ lucideX, lucideCheck, lucideMail })],
   templateUrl: './share-dialog.html',
 })
 export class ShareDialog {
-  private readonly data = inject(DataService);
-  private readonly destroyRef = inject(DestroyRef);
+  private readonly fileApi = inject(FileApiService);
 
   /** File being shared. `null` collapses the title to a generic label. */
   readonly file = input<FileItem | null>(null);
   /** Whether the modal is visible. Two-way bindable via `[(open)]`. */
   readonly open = model<boolean>(false);
 
-  /** Mock tooltip exposed to the template. */
-  protected readonly mockTooltip = MOCK_TOOLTIP;
   /** Stable id linking the dialog to its title (single-instance mockup). */
   protected readonly titleId = 'kubo-share-dialog-title';
 
@@ -75,50 +58,59 @@ export class ShareDialog {
     return f ? `Compartir "${f.originalName}"` : 'Compartir';
   });
 
-  /** People this file is already shared with. */
-  protected readonly shares = computed<ShareRow[]>(() => {
-    const f = this.file();
-    return f ? this.data.sharesForFile(f.id) : [];
-  });
-
-  /** Transient "Copiado" feedback for the copy-link button. */
-  protected readonly copied = signal(false);
-  private copyTimer: ReturnType<typeof setTimeout> | undefined;
+  /** Email being invited. */
+  protected readonly email = signal('');
+  /** In-flight submit state. */
+  protected readonly submitting = signal(false);
+  /** Inline feedback shown after a submit attempt. */
+  protected readonly feedback = signal<{ kind: 'success' | 'error'; message: string } | null>(
+    null,
+  );
 
   private lastFocused: HTMLElement | null = null;
   private wasOpen = false;
-  private prevOverflow = '';
 
   constructor() {
-    // Focus management + body scroll-lock, browser-only via afterRenderEffect.
+    // Focus management, browser-only via afterRenderEffect.
     afterRenderEffect(() => {
       const open = this.open();
       if (open && !this.wasOpen) {
-        this.prevOverflow = document.body.style.overflow;
-        document.body.style.overflow = 'hidden';
         this.lastFocused = document.activeElement as HTMLElement | null;
         this.closeBtn()?.nativeElement.focus();
       } else if (!open && this.wasOpen) {
-        document.body.style.overflow = this.prevOverflow;
         this.lastFocused?.focus?.();
         this.lastFocused = null;
+        this.email.set('');
+        this.feedback.set(null);
       }
       this.wasOpen = open;
     });
-
-    this.destroyRef.onDestroy(() => {
-      if (this.copyTimer) clearTimeout(this.copyTimer);
-    });
   }
 
-  /** Human label for a share permission. */
-  protected permLabel(p: Permission): string {
-    return p === 'WRITE' ? 'Puede editar' : 'Puede ver';
+  protected onEmailInput(event: Event): void {
+    this.email.set((event.target as HTMLInputElement).value);
   }
 
-  /** Name of whoever granted a given share. */
-  protected sharedBy(row: ShareRow): string {
-    return this.data.userById(row.share.sharedByUserId)?.name ?? 'Desconocido';
+  /** Submits the invite to the backend's create-share (read-only) endpoint. */
+  protected async submit(): Promise<void> {
+    const file = this.file();
+    const email = this.email().trim();
+    if (!file || !email || this.submitting()) return;
+
+    this.submitting.set(true);
+    this.feedback.set(null);
+    try {
+      await this.fileApi.share(file.id, email);
+      this.feedback.set({ kind: 'success', message: `Invitación enviada a ${email}.` });
+      this.email.set('');
+    } catch {
+      this.feedback.set({
+        kind: 'error',
+        message: 'No se pudo compartir el archivo. Intenta nuevamente.',
+      });
+    } finally {
+      this.submitting.set(false);
+    }
   }
 
   /** Handle ESC (close) and Tab (focus trap) from inside the dialog. */
@@ -158,11 +150,11 @@ export class ShareDialog {
     }
   }
 
-  /** Visual-only clipboard feedback — no real navigator.clipboard call. */
-  protected copyLink(): void {
-    this.copied.set(true);
-    if (this.copyTimer) clearTimeout(this.copyTimer);
-    this.copyTimer = setTimeout(() => this.copied.set(false), 2000);
+  /** Tailwind classes for the inline feedback message, by kind. */
+  protected feedbackClass(kind: 'success' | 'error'): string {
+    return kind === 'success'
+      ? 'bg-success/10 text-success'
+      : 'bg-destructive/10 text-destructive';
   }
 
   protected close(): void {

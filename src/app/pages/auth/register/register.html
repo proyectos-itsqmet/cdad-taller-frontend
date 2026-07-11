@@ -29,45 +29,80 @@
         </p>
       </header>
 
-      <!-- Mockup notice -->
-      <div
-        class="mb-6 flex items-start gap-2.5 rounded-lg border border-border bg-surface-muted px-3.5 py-3 text-xs text-muted-foreground"
-        role="note"
-      >
-        <ng-icon name="lucideInfo" class="mt-0.5 shrink-0 text-base text-brand" aria-hidden="true" />
-        <span>Esta es una maqueta sin backend: el registro es solo demostrativo y no guarda datos.</span>
-      </div>
+      @if (registerError(); as error) {
+        <div
+          class="mb-6 flex items-start gap-2.5 rounded-lg border border-destructive/40 bg-destructive/5 px-3.5 py-3 text-xs text-destructive"
+          role="alert"
+        >
+          <ng-icon name="lucideInfo" class="mt-0.5 shrink-0 text-base" aria-hidden="true" />
+          <span>{{ error }}</span>
+        </div>
+      }
 
       <form class="flex flex-col gap-5" novalidate (submit)="onSubmit($event)">
-        <!-- Name -->
-        <div class="flex flex-col gap-1.5">
-          <label for="reg-name" class="text-sm font-medium text-foreground">Nombre completo</label>
-          <div class="relative">
-            <span
-              class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground"
-              aria-hidden="true"
-            >
-              <ng-icon name="lucideUser" class="text-base" />
-            </span>
-            <input
-              id="reg-name"
-              name="name"
-              type="text"
-              autocomplete="name"
-              placeholder="Tu nombre"
-              [value]="name()"
-              (input)="onNameInput($event)"
-              (blur)="nameTouched.set(true)"
-              [attr.aria-invalid]="showNameError()"
-              [attr.aria-describedby]="showNameError() ? 'reg-name-error' : null"
-              class="h-11 w-full rounded-lg border bg-surface pl-10 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              [class.border-border]="!showNameError()"
-              [class.border-destructive]="showNameError()"
-            />
+        <!-- First and last name -->
+        <div class="flex flex-col gap-5 sm:flex-row">
+          <!-- First name -->
+          <div class="flex flex-1 flex-col gap-1.5">
+            <label for="reg-first-name" class="text-sm font-medium text-foreground">Nombre</label>
+            <div class="relative">
+              <span
+                class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground"
+                aria-hidden="true"
+              >
+                <ng-icon name="lucideUser" class="text-base" />
+              </span>
+              <input
+                id="reg-first-name"
+                name="firstName"
+                type="text"
+                autocomplete="given-name"
+                placeholder="Tu nombre"
+                [value]="firstName()"
+                (input)="onFirstNameInput($event)"
+                (blur)="firstNameTouched.set(true)"
+                [attr.aria-invalid]="showFirstNameError()"
+                [attr.aria-describedby]="showFirstNameError() ? 'reg-first-name-error' : null"
+                class="h-11 w-full rounded-lg border bg-surface pl-10 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                [class.border-border]="!showFirstNameError()"
+                [class.border-destructive]="showFirstNameError()"
+              />
+            </div>
+            @if (showFirstNameError()) {
+              <p id="reg-first-name-error" class="text-xs text-destructive" role="alert">{{ firstNameError() }}</p>
+            }
           </div>
-          @if (showNameError()) {
-            <p id="reg-name-error" class="text-xs text-destructive" role="alert">{{ nameError() }}</p>
-          }
+
+          <!-- Last name -->
+          <div class="flex flex-1 flex-col gap-1.5">
+            <label for="reg-last-name" class="text-sm font-medium text-foreground">Apellido</label>
+            <div class="relative">
+              <span
+                class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground"
+                aria-hidden="true"
+              >
+                <ng-icon name="lucideUser" class="text-base" />
+              </span>
+              <input
+                id="reg-last-name"
+                name="lastName"
+                type="text"
+                autocomplete="family-name"
+                placeholder="Tu apellido"
+                [value]="lastName()"
+                (input)="onLastNameInput($event)"
+                (blur)="lastNameTouched.set(true)"
+                [attr.aria-invalid]="showLastNameError()"
+                [attr.aria-describedby]="showLastNameError() ? 'reg-last-name-error' : null"
+                class="h-11 w-full rounded-lg border bg-surface pl-10 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                [class.border-border]="!showLastNameError()"
+                [class.border-destructive]="showLastNameError()"
+              />
+            </div>
+            @if (showLastNameError()) {
+              <p id="reg-last-name-error" class="text-xs text-destructive" role="alert">{{ lastNameError() }}</p>
+            }
+          </div>
         </div>
 
         <!-- Email -->
@@ -204,10 +239,13 @@
         <!-- Submit -->
         <button
           type="submit"
-          class="mt-1 inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-brand font-semibold text-brand-fg transition-colors hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          [disabled]="loading()"
+          class="mt-1 inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-brand font-semibold text-brand-fg transition-colors hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-70"
         >
-          Crear cuenta
-          <ng-icon name="lucideArrowRight" class="text-base" aria-hidden="true" />
+          {{ loading() ? 'Creando cuenta…' : 'Crear cuenta' }}
+          @if (!loading()) {
+            <ng-icon name="lucideArrowRight" class="text-base" aria-hidden="true" />
+          }
         </button>
       </form>
 

@@ -15,6 +15,9 @@ export type ViewMode = 'grid-large' | 'grid-small' | 'list';
 /** User-selectable theme preference. `system` follows the OS setting. */
 export type ThemeMode = 'light' | 'dark' | 'system';
 
+/** Upload lifecycle state of a backend-tracked file. */
+export type FileStatus = 'PENDING' | 'UPLOADED';
+
 /** An account in the system. `u1` is always the fixed current user. */
 export interface User {
   id: string;
@@ -52,6 +55,8 @@ export interface FileItem {
   createdAt: string;
   modifiedAt: string;
   starred?: boolean;
+  /** Upload state when backed by the real API; absent for mock data. */
+  status?: FileStatus;
 }
 
 /** A single share of a file from one user to another. */

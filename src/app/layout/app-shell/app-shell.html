@@ -17,7 +17,7 @@
   >
     <!-- Brand + mobile close -->
     <div class="flex h-16 shrink-0 items-center justify-between px-4">
-      <a routerLink="/home" (click)="closeSidebar()" class="flex items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+      <a routerLink="/archivos" (click)="closeSidebar()" class="flex items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
         <span class="flex size-9 items-center justify-center rounded-xl bg-brand text-brand-fg shadow-sm">
           <ng-icon name="lucideBox" class="text-xl" aria-hidden="true" />
         </span>
@@ -30,19 +30,6 @@
         (click)="closeSidebar()"
       >
         <ng-icon name="lucideX" class="text-xl" aria-hidden="true" />
-      </button>
-    </div>
-
-    <!-- Subir (mock / disabled) -->
-    <div class="px-4 pb-3">
-      <button
-        type="button"
-        disabled
-        title="Disponible en la versión completa"
-        class="flex h-11 w-full cursor-not-allowed items-center justify-center gap-2 rounded-lg bg-brand px-4 text-sm font-semibold text-brand-fg opacity-60"
-      >
-        <ng-icon name="lucideUpload" class="text-lg" aria-hidden="true" />
-        <span>Subir</span>
       </button>
     </div>
 
@@ -65,9 +52,8 @@
       </ul>
     </nav>
 
-    <!-- Pinned footer: storage + settings + user -->
+    <!-- Pinned footer: settings + user -->
     <div class="mt-auto flex flex-col gap-3 border-t border-border p-4">
-      <kubo-storage-meter />
       <div class="flex items-center gap-2">
         <a
           routerLink="/configuracion"
@@ -79,17 +65,19 @@
         >
           <ng-icon name="lucideSettings" class="text-xl" aria-hidden="true" />
         </a>
-        <a
-          routerLink="/configuracion"
-          (click)="closeSidebar()"
-          class="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg p-1.5 transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <kubo-user-avatar [user]="user()" [size]="36" />
-          <span class="flex min-w-0 flex-col">
-            <span class="truncate text-sm font-medium text-foreground">{{ user().name }}</span>
-            <span class="truncate text-xs text-muted-foreground">{{ user().email }}</span>
-          </span>
-        </a>
+        @if (user(); as u) {
+          <a
+            routerLink="/configuracion"
+            (click)="closeSidebar()"
+            class="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg p-1.5 transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <kubo-user-avatar [user]="u" [size]="36" />
+            <span class="flex min-w-0 flex-col">
+              <span class="truncate text-sm font-medium text-foreground">{{ u.name }}</span>
+              <span class="truncate text-xs text-muted-foreground">{{ u.email }}</span>
+            </span>
+          </a>
+        }
       </div>
     </div>
   </aside>
@@ -112,7 +100,7 @@
       </button>
 
       <!-- Brand (mobile only, sidebar carries it on desktop) -->
-      <a routerLink="/home" class="flex items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden">
+      <a routerLink="/archivos" class="flex items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden">
         <span class="flex size-8 items-center justify-center rounded-lg bg-brand text-brand-fg">
           <ng-icon name="lucideBox" aria-hidden="true" />
         </span>
@@ -159,20 +147,22 @@
             [attr.aria-expanded]="userMenuOpen()"
             (click)="toggleUserMenu()"
           >
-            <kubo-user-avatar [user]="user()" [size]="40" />
+            @if (user(); as u) {
+              <kubo-user-avatar [user]="u" [size]="40" />
+            }
           </button>
 
-          @if (userMenuOpen()) {
+          @if (userMenuOpen() && user(); as u) {
             <div
               class="absolute right-0 top-full z-40 mt-2 w-60 overflow-hidden rounded-xl border border-border bg-surface shadow-lg"
               role="menu"
               aria-label="Menú de usuario"
             >
               <div class="flex items-center gap-3 border-b border-border p-3">
-                <kubo-user-avatar [user]="user()" [size]="40" />
+                <kubo-user-avatar [user]="u" [size]="40" />
                 <div class="flex min-w-0 flex-col">
-                  <span class="truncate text-sm font-semibold text-foreground">{{ user().name }}</span>
-                  <span class="truncate text-xs text-muted-foreground">{{ user().email }}</span>
+                  <span class="truncate text-sm font-semibold text-foreground">{{ u.name }}</span>
+                  <span class="truncate text-xs text-muted-foreground">{{ u.email }}</span>
                 </div>
               </div>
               <div class="p-1">
@@ -194,15 +184,15 @@
                   <ng-icon name="lucideSettings" class="text-lg text-muted-foreground" aria-hidden="true" />
                   <span>Ajustes</span>
                 </a>
-                <a
-                  routerLink="/"
+                <button
+                  type="button"
                   role="menuitem"
-                  (click)="closeUserMenu()"
-                  class="flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium text-destructive transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  (click)="logout()"
+                  class="flex h-10 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium text-destructive transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <ng-icon name="lucideLogOut" class="text-lg" aria-hidden="true" />
                   <span>Cerrar sesión</span>
-                </a>
+                </button>
               </div>
             </div>
           }
