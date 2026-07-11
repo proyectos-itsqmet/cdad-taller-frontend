@@ -1,24 +1,18 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
   lucideBox,
   lucideCircleHelp,
-  lucideClock,
   lucideHardDrive,
-  lucideHouse,
   lucideLogOut,
   lucideMenu,
   lucideSearch,
   lucideSettings,
-  lucideShare2,
-  lucideStar,
-  lucideUpload,
   lucideUser,
   lucideX,
 } from '@ng-icons/lucide';
-import { DataService } from '../../core/data/data.service';
-import { StorageMeter } from '../../shared/ui/storage-meter/storage-meter';
+import { AuthService } from '../../core/auth/auth.service';
 import { ThemeToggle } from '../../shared/ui/theme-toggle/theme-toggle';
 import { UserAvatar } from '../../shared/ui/user-avatar/user-avatar';
 
@@ -34,16 +28,11 @@ interface NavLink {
 @Component({
   selector: 'app-shell',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, NgIcon, StorageMeter, UserAvatar, ThemeToggle],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, NgIcon, UserAvatar, ThemeToggle],
   providers: [
     provideIcons({
       lucideBox,
-      lucideUpload,
-      lucideHouse,
       lucideHardDrive,
-      lucideShare2,
-      lucideClock,
-      lucideStar,
       lucideSettings,
       lucideMenu,
       lucideSearch,
@@ -61,19 +50,16 @@ interface NavLink {
   templateUrl: './app-shell.html',
 })
 export class AppShell {
-  private readonly data = inject(DataService);
+  private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
 
-  protected readonly user = this.data.currentUser;
+  protected readonly user = this.authService.currentUser;
 
   protected readonly sidebarOpen = signal(false);
   protected readonly userMenuOpen = signal(false);
 
   protected readonly navLinks: readonly NavLink[] = [
-    { path: '/home', label: 'Inicio', icon: 'lucideHouse' },
     { path: '/archivos', label: 'Mi unidad', icon: 'lucideHardDrive' },
-    { path: '/compartidos', label: 'Compartido conmigo', icon: 'lucideShare2' },
-    { path: '/recientes', label: 'Recientes', icon: 'lucideClock' },
-    { path: '/destacados', label: 'Destacados', icon: 'lucideStar' },
   ];
 
   protected toggleSidebar(): void {
@@ -95,5 +81,12 @@ export class AppShell {
   protected closeMenus(): void {
     this.sidebarOpen.set(false);
     this.userMenuOpen.set(false);
+  }
+
+  /** Logs out and returns to the login page. */
+  protected async logout(): Promise<void> {
+    this.closeUserMenu();
+    await this.authService.logout();
+    await this.router.navigate(['/login']);
   }
 }

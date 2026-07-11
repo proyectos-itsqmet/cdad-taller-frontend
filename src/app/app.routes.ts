@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { AppShell } from './layout/app-shell/app-shell';
+import { authGuard } from './core/auth/auth.guard';
 
 export const routes: Routes = [
   // ---- Public pages (no shell) ----
@@ -33,11 +34,10 @@ export const routes: Routes = [
   {
     path: '',
     component: AppShell,
+    canActivateChild: [authGuard],
     children: [
-      {
-        path: 'home',
-        loadComponent: () => import('./pages/home/home').then((m) => m.Home),
-      },
+      { path: '', redirectTo: 'archivos', pathMatch: 'full' },
+      { path: 'home', redirectTo: 'archivos', pathMatch: 'full' },
       {
         path: 'archivos',
         loadComponent: () => import('./pages/files/files').then((m) => m.Files),
@@ -45,18 +45,6 @@ export const routes: Routes = [
       {
         path: 'archivos/:folderId',
         loadComponent: () => import('./pages/files/files').then((m) => m.Files),
-      },
-      {
-        path: 'compartidos',
-        loadComponent: () => import('./pages/shared-with-me/shared-with-me').then((m) => m.SharedWithMe),
-      },
-      {
-        path: 'recientes',
-        loadComponent: () => import('./pages/recent/recent').then((m) => m.Recent),
-      },
-      {
-        path: 'destacados',
-        loadComponent: () => import('./pages/starred/starred').then((m) => m.Starred),
       },
       {
         path: 'configuracion',
@@ -70,14 +58,6 @@ export const routes: Routes = [
           {
             path: 'tema',
             loadComponent: () => import('./pages/settings/appearance/appearance').then((m) => m.Appearance),
-          },
-          {
-            path: 'carpetas',
-            loadComponent: () => import('./pages/settings/folders/folders').then((m) => m.FoldersSettings),
-          },
-          {
-            path: 'actividad',
-            loadComponent: () => import('./pages/settings/activity/activity').then((m) => m.Activity),
           },
         ],
       },

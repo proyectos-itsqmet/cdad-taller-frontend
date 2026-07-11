@@ -16,13 +16,11 @@ import {
 } from '@ng-icons/lucide';
 import { FileItem } from '../../core/models/models';
 
-/** Tooltip shown on every action disabled in this read-only mockup. */
-const MOCK_TOOLTIP = 'Disponible en la versión completa';
-
 /**
  * kubo-file-menu — trailing kebab with per-file actions.
- * Real actions ("Ver detalles", "Compartir") emit to the parent; write actions
- * (Descargar/Renombrar/Eliminar) are disabled mocks. Self-manages open/close
+ * "Ver detalles" and "Compartir" ask the parent to open the shared
+ * details/share overlays; "Descargar", "Renombrar" and "Eliminar" emit
+ * outputs the parent wires to the real API calls. Self-manages open/close
  * via browser-only host listeners (outside-click + Escape), so it is
  * SSR/zoneless-safe — no listeners are attached during prerender.
  */
@@ -67,7 +65,7 @@ const MOCK_TOOLTIP = 'Disponible en la versión completa';
           type="button"
           role="menuitem"
           class="flex h-10 w-full items-center gap-3 rounded-lg px-2.5 text-sm text-foreground transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          (click)="details.emit()"
+          (click)="onDetails()"
         >
           <ng-icon name="lucideInfo" class="text-base text-muted-foreground" aria-hidden="true" />
           Ver detalles
@@ -76,7 +74,7 @@ const MOCK_TOOLTIP = 'Disponible en la versión completa';
           type="button"
           role="menuitem"
           class="flex h-10 w-full items-center gap-3 rounded-lg px-2.5 text-sm text-foreground transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          (click)="share.emit()"
+          (click)="onShare()"
         >
           <ng-icon name="lucideShare2" class="text-base text-muted-foreground" aria-hidden="true" />
           Compartir
@@ -87,29 +85,26 @@ const MOCK_TOOLTIP = 'Disponible en la versión completa';
         <button
           type="button"
           role="menuitem"
-          disabled
-          [title]="mockTooltip"
-          class="flex h-10 w-full cursor-not-allowed items-center gap-3 rounded-lg px-2.5 text-sm text-muted-foreground opacity-60"
+          class="flex h-10 w-full items-center gap-3 rounded-lg px-2.5 text-sm text-foreground transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          (click)="onDownload()"
         >
-          <ng-icon name="lucideDownload" class="text-base" aria-hidden="true" />
+          <ng-icon name="lucideDownload" class="text-base text-muted-foreground" aria-hidden="true" />
           Descargar
         </button>
         <button
           type="button"
           role="menuitem"
-          disabled
-          [title]="mockTooltip"
-          class="flex h-10 w-full cursor-not-allowed items-center gap-3 rounded-lg px-2.5 text-sm text-muted-foreground opacity-60"
+          class="flex h-10 w-full items-center gap-3 rounded-lg px-2.5 text-sm text-foreground transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          (click)="onRename()"
         >
-          <ng-icon name="lucidePencil" class="text-base" aria-hidden="true" />
+          <ng-icon name="lucidePencil" class="text-base text-muted-foreground" aria-hidden="true" />
           Renombrar
         </button>
         <button
           type="button"
           role="menuitem"
-          disabled
-          [title]="mockTooltip"
-          class="flex h-10 w-full cursor-not-allowed items-center gap-3 rounded-lg px-2.5 text-sm text-destructive opacity-60"
+          class="flex h-10 w-full items-center gap-3 rounded-lg px-2.5 text-sm text-destructive transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          (click)="onDelete()"
         >
           <ng-icon name="lucideTrash2" class="text-base" aria-hidden="true" />
           Eliminar
@@ -126,12 +121,38 @@ export class FileMenu {
   readonly details = output<void>();
   /** Request to open the share dialog for this file. */
   readonly share = output<void>();
+  /** Request to download this file. */
+  readonly download = output<void>();
+  /** Request to rename this file. */
+  readonly rename = output<void>();
+  /** Request to delete this file. */
+  readonly delete = output<void>();
 
   protected readonly menuOpen = signal(false);
-  protected readonly mockTooltip = MOCK_TOOLTIP;
 
   protected toggle(event: Event): void {
     event.stopPropagation();
     this.menuOpen.update((v) => !v);
+  }
+
+  protected onDetails(): void {
+    this.menuOpen.set(false);
+    this.details.emit();
+  }
+  protected onShare(): void {
+    this.menuOpen.set(false);
+    this.share.emit();
+  }
+  protected onDownload(): void {
+    this.menuOpen.set(false);
+    this.download.emit();
+  }
+  protected onRename(): void {
+    this.menuOpen.set(false);
+    this.rename.emit();
+  }
+  protected onDelete(): void {
+    this.menuOpen.set(false);
+    this.delete.emit();
   }
 }

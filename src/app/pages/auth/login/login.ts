@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
   lucideArrowRight,
@@ -10,18 +10,19 @@ import {
   lucideLock,
   lucideMail,
 } from '@ng-icons/lucide';
+import { AuthService } from '../../../core/auth/auth.service';
 import { AuthBrandPanel } from '../brand-panel/brand-panel';
 
 /** Illustrative email shape check — this is a mockup, not real validation. */
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
- * Login — public, mock sign-in page (NO backend).
+ * Login — public sign-in page, wired to the real backend via `AuthService`.
  *
  * Split layout: cyan brand panel on `lg`, form card on the right. Field state
- * lives in signals; validation is purely client-side and illustrative. On a
- * valid submit we navigate to /home for the demo flow — nothing is persisted
- * and we never claim a session was created.
+ * lives in signals; validation is purely client-side. On a successful login
+ * we navigate to /archivos; on failure we show an inline error message and
+ * never navigate.
  */
 @Component({
   selector: 'kubo-login',
@@ -42,6 +43,13 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 })
 export class Login {
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly authService = inject(AuthService);
+
+  /** Shown once, right after a successful registration redirected here. */
+  protected readonly justRegistered = signal(
+    this.route.snapshot.queryParamMap.get('registrado') === '1',
+  );
 
   protected readonly email = signal('');
   protected readonly password = signal('');
@@ -52,6 +60,11 @@ export class Login {
   protected readonly submitted = signal(false);
   protected readonly emailTouched = signal(false);
   protected readonly passwordTouched = signal(false);
+
+  /** True while the login request is in flight — guards against double-submit. */
+  protected readonly loading = signal(false);
+  /** Set on a failed login attempt; cleared on the next submit. */
+  protected readonly loginError = signal<string | null>(null);
 
   protected readonly emailError = computed(() => {
     const value = this.email().trim();
@@ -90,13 +103,23 @@ export class Login {
     this.showPassword.update((v) => !v);
   }
 
-  protected onSubmit(event: Event): void {
+  protected async onSubmit(event: Event): Promise<void> {
     event.preventDefault();
     this.submitted.set(true);
+    if (this.loading()) return;
     if (this.emailError() || this.passwordError()) {
       return;
     }
-    // Demo flow only — no authentication happens.
-    void this.router.navigate(['/home']);
+
+    this.loading.set(true);
+    this.loginError.set(null);
+    try {
+      await this.authService.login(this.email().trim(), this.password());
+      await this.router.navigate(['/archivos']);
+    } catch {
+      this.loginError.set('Correo o contraseña incorrectos. Intentá de nuevo.');
+    } finally {
+      this.loading.set(false);
+    }
   }
 }
