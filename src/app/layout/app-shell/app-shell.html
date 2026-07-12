@@ -84,10 +84,10 @@
           (click)="closeSidebar()"
           class="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg p-1.5 transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <kubo-user-avatar [user]="user()" [size]="36" />
+          <kubo-user-avatar [user]="displayUser()!" [size]="36" />
           <span class="flex min-w-0 flex-col">
-            <span class="truncate text-sm font-medium text-foreground">{{ user().name }}</span>
-            <span class="truncate text-xs text-muted-foreground">{{ user().email }}</span>
+            <span class="truncate text-sm font-medium text-foreground">{{ authUser()?.firstName }} {{ authUser()?.lastName }}</span>
+            <span class="truncate text-xs text-muted-foreground">{{ authUser()?.email }}</span>
           </span>
         </a>
       </div>
@@ -159,7 +159,7 @@
             [attr.aria-expanded]="userMenuOpen()"
             (click)="toggleUserMenu()"
           >
-            <kubo-user-avatar [user]="user()" [size]="40" />
+            <kubo-user-avatar [user]="displayUser()!" [size]="40" />
           </button>
 
           @if (userMenuOpen()) {
@@ -169,10 +169,10 @@
               aria-label="Menú de usuario"
             >
               <div class="flex items-center gap-3 border-b border-border p-3">
-                <kubo-user-avatar [user]="user()" [size]="40" />
+                <kubo-user-avatar [user]="displayUser()!" [size]="40" />
                 <div class="flex min-w-0 flex-col">
-                  <span class="truncate text-sm font-semibold text-foreground">{{ user().name }}</span>
-                  <span class="truncate text-xs text-muted-foreground">{{ user().email }}</span>
+                  <span class="truncate text-sm font-semibold text-foreground">{{ authUser()?.firstName }} {{ authUser()?.lastName }}</span>
+                  <span class="truncate text-xs text-muted-foreground">{{ authUser()?.email }}</span>
                 </div>
               </div>
               <div class="p-1">

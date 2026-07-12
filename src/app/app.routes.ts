@@ -1,5 +1,7 @@
 import { Routes } from '@angular/router';
 import { AppShell } from './layout/app-shell/app-shell';
+import { authGuard } from './core/auth/auth.guard';
+import { pendingUploadGuard } from './core/files/upload.guard';
 
 export const routes: Routes = [
   // ---- Public pages (no shell) ----
@@ -33,17 +35,21 @@ export const routes: Routes = [
   {
     path: '',
     component: AppShell,
+    canActivate: [authGuard],
     children: [
       {
         path: 'home',
+        canDeactivate: [pendingUploadGuard],
         loadComponent: () => import('./pages/home/home').then((m) => m.Home),
       },
       {
         path: 'archivos',
+        canDeactivate: [pendingUploadGuard],
         loadComponent: () => import('./pages/files/files').then((m) => m.Files),
       },
       {
         path: 'archivos/:folderId',
+        canDeactivate: [pendingUploadGuard],
         loadComponent: () => import('./pages/files/files').then((m) => m.Files),
       },
       {

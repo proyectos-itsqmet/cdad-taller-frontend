@@ -9,6 +9,7 @@ import {
   inject,
   input,
   model,
+  output,
   viewChild,
 } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
@@ -61,6 +62,10 @@ export class DetailsPane {
   readonly file = input<FileItem | null>(null);
   /** Whether the drawer is visible. Two-way bindable via `[(open)]`. */
   readonly open = model<boolean>(false);
+  /** Request to download this file. */
+  readonly download = output<void>();
+  /** Request to delete this file. */
+  readonly delete = output<void>();
 
   /** Mock tooltip exposed to the template. */
   protected readonly mockTooltip = MOCK_TOOLTIP;

@@ -23,18 +23,16 @@
       <div class="flex flex-wrap items-center gap-2">
         <button
           type="button"
-          disabled
-          [title]="mockTooltip"
-          class="flex h-10 cursor-not-allowed items-center gap-2 rounded-lg bg-brand px-3.5 text-sm font-semibold text-brand-fg opacity-60"
+          (click)="openUploadDialog()"
+          class="flex h-10 items-center gap-2 rounded-lg bg-brand px-3.5 text-sm font-semibold text-brand-fg transition-colors hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <ng-icon name="lucideUpload" class="text-base" aria-hidden="true" />
           <span>Subir</span>
         </button>
         <button
           type="button"
-          disabled
-          [title]="mockTooltip"
-          class="flex h-10 cursor-not-allowed items-center gap-2 rounded-lg border border-border bg-surface px-3.5 text-sm font-medium text-foreground opacity-60"
+          (click)="openNewFolderDialog()"
+          class="flex h-10 items-center gap-2 rounded-lg border border-border bg-surface px-3.5 text-sm font-medium text-foreground transition-colors hover:bg-surface-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <ng-icon name="lucidePlus" class="text-base" aria-hidden="true" />
           <span>Nueva carpeta</span>
@@ -174,6 +172,7 @@
                     <td class="px-3 py-2">
                       <a
                         [routerLink]="['/archivos', folder.id]"
+                        [state]="{ folderName: folder.name }"
                         class="flex min-w-0 items-center gap-3 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         <kubo-file-icon kind="folder" size="1.375rem" />
@@ -192,7 +191,11 @@
                     <td class="px-3 py-2 text-right text-muted-foreground">{{ folderCount(folder.id) || '—' }}</td>
                     <td class="hidden px-3 py-2 text-muted-foreground md:table-cell">Carpeta</td>
                     <td class="hidden px-3 py-2 text-center text-muted-foreground md:table-cell">—</td>
-                    <td class="px-2 py-2"></td>
+                    <td class="px-2 py-2">
+                      <div class="flex items-center justify-end gap-0.5">
+                        <kubo-folder-menu [folder]="folder" (delete)="promptDeleteFolder(folder)" (rename)="promptRenameFolder(folder)" />
+                      </div>
+                    </td>
                   </tr>
                 }
                 <!-- Files -->
@@ -248,7 +251,7 @@
                         >
                           <ng-icon name="lucideStar" class="text-base" [class.text-warning]="isStarred(file)" aria-hidden="true" />
                         </button>
-                        <kubo-file-menu [file]="file" (details)="openDetails(file)" (share)="openShare(file)" />
+                        <kubo-file-menu [file]="file" (details)="openDetails(file)" (share)="openShare(file)" (download)="downloadFile(file)" (delete)="promptDeleteFile(file)" (rename)="promptRenameFile(file)" />
                       </div>
                     </td>
                   </tr>
@@ -267,16 +270,21 @@
                 <ul class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" role="list">
                   @for (folder of visibleFolders(); track folder.id) {
                     <li>
-                      <a
-                        [routerLink]="['/archivos', folder.id]"
-                        class="flex items-center gap-3 rounded-lg border border-border bg-surface px-3 py-2.5 transition-colors hover:border-brand/40 hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      >
-                        <kubo-file-icon kind="folder" size="1.5rem" />
-                        <span class="min-w-0 flex-1">
-                          <span class="block truncate text-sm font-medium text-foreground">{{ folder.name }}</span>
-                          <span class="block text-xs text-muted-foreground">{{ folderCountLabel(folder.id) }}</span>
-                        </span>
-                      </a>
+                      <div class="group relative flex items-center gap-2 rounded-lg border border-border bg-surface pr-1.5 transition-colors hover:border-brand/40 hover:bg-surface-muted">
+                        <a
+                          [routerLink]="['/archivos', folder.id]"
+                          [state]="{ folderName: folder.name }"
+                          class="before:absolute before:inset-0 before:z-0 flex min-w-0 flex-1 items-center gap-3 rounded-lg py-2.5 pl-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          title="{{ folder.name }}"
+                        >
+                          <kubo-file-icon kind="folder" size="1.5rem" />
+                          <span class="min-w-0 flex-1">
+                            <span class="block truncate text-sm font-medium text-foreground">{{ folder.name }}</span>
+                            <span class="block text-xs text-muted-foreground">{{ folderCountLabel(folder.id) }}</span>
+                          </span>
+                        </a>
+                        <kubo-folder-menu [folder]="folder" (delete)="promptDeleteFolder(folder)" (rename)="promptRenameFolder(folder)" />
+                      </div>
                     </li>
                   }
                 </ul>
@@ -316,7 +324,7 @@
                         >
                           <ng-icon name="lucideStar" class="text-base" [class.text-warning]="isStarred(file)" aria-hidden="true" />
                         </button>
-                        <kubo-file-menu [file]="file" (details)="openDetails(file)" (share)="openShare(file)" />
+                        <kubo-file-menu [file]="file" (details)="openDetails(file)" (share)="openShare(file)" (download)="downloadFile(file)" (delete)="promptDeleteFile(file)" (rename)="promptRenameFile(file)" />
                       </div>
                     </li>
                   }
@@ -335,16 +343,22 @@
                 <ul class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6" role="list">
                   @for (folder of visibleFolders(); track folder.id) {
                     <li>
-                      <a
-                        [routerLink]="['/archivos', folder.id]"
-                        class="flex flex-col items-center gap-3 rounded-xl border border-border bg-surface p-4 text-center transition-colors hover:border-brand/40 hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      >
-                        <kubo-file-icon kind="folder" size="2.5rem" />
-                        <span class="w-full min-w-0">
-                          <span class="block truncate text-sm font-medium text-foreground">{{ folder.name }}</span>
-                          <span class="mt-0.5 block text-xs text-muted-foreground">{{ folderCountLabel(folder.id) }}</span>
-                        </span>
-                      </a>
+                      <div class="group relative flex flex-col rounded-xl border border-border bg-surface transition-colors hover:border-brand/40 hover:bg-surface-muted">
+                        <div class="absolute right-1.5 top-1.5 z-10 flex items-center gap-0.5">
+                          <kubo-folder-menu [folder]="folder" (delete)="promptDeleteFolder(folder)" (rename)="promptRenameFolder(folder)" />
+                        </div>
+                        <a
+                          [routerLink]="['/archivos', folder.id]"
+                          [state]="{ folderName: folder.name }"
+                          class="flex flex-col items-center gap-3 px-4 pb-3 pt-8 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                          <kubo-file-icon kind="folder" size="2.5rem" />
+                          <span class="w-full min-w-0">
+                            <span class="block truncate text-sm font-medium text-foreground">{{ folder.name }}</span>
+                            <span class="mt-0.5 block text-xs text-muted-foreground">{{ folderCountLabel(folder.id) }}</span>
+                          </span>
+                        </a>
+                      </div>
                     </li>
                   }
                 </ul>
@@ -368,7 +382,7 @@
                           >
                             <ng-icon name="lucideStar" class="text-base" [class.text-warning]="isStarred(file)" aria-hidden="true" />
                           </button>
-                          <kubo-file-menu [file]="file" (details)="openDetails(file)" (share)="openShare(file)" />
+                          <kubo-file-menu [file]="file" (details)="openDetails(file)" (share)="openShare(file)" (download)="downloadFile(file)" (delete)="promptDeleteFile(file)" (rename)="promptRenameFile(file)" />
                         </div>
 
                         <button
@@ -407,5 +421,57 @@
 </div>
 
 <!-- Shared overlays: rendered once near the page root -->
-<kubo-details-pane [file]="selected()" [(open)]="detailsOpen" />
+<kubo-details-pane [file]="selected()" [(open)]="detailsOpen" (download)="downloadSelected()" (delete)="promptDeleteSelected()" />
 <kubo-share-dialog [file]="selected()" [(open)]="shareOpen" />
+<kubo-folder-dialog [(open)]="folderDialogOpen" (confirm)="onFolderCreated($event)" />
+<kubo-upload-dialog [(open)]="uploadDialogOpen" (confirm)="onFileUploaded($event)" />
+<kubo-confirm-dialog [(open)]="deleteConfirmOpen" [loading]="isDeleting()" [title]="deleteConfirmTitle" [message]="deleteConfirmMessage" confirmText="Eliminar" (confirm)="confirmDelete()" />
+<kubo-rename-dialog [(open)]="renameDialogOpen" [loading]="isRenaming()" [initialName]="renameConfirmInitialName" (confirm)="confirmRename($event)" />
+
+@if (uploadStatus() !== 'idle') {
+  <div class="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 shadow-xl animate-in slide-in-from-bottom-8 fade-in">
+    @if (uploadStatus() === 'uploading') {
+      <ng-icon name="lucideLoader2" class="animate-spin text-2xl text-brand" aria-hidden="true"></ng-icon>
+      <div class="flex flex-col">
+        <span class="text-sm font-semibold text-foreground">Subiendo elemento...</span>
+        <span class="text-xs text-muted-foreground">{{ uploadFileName() }}</span>
+      </div>
+    } @else if (uploadStatus() === 'success') {
+      <ng-icon name="lucideCheckCircle2" class="text-2xl text-emerald-500" aria-hidden="true"></ng-icon>
+      <div class="flex flex-col">
+        <span class="text-sm font-semibold text-foreground">Carga culminada</span>
+        <span class="text-xs text-muted-foreground">{{ uploadFileName() }}</span>
+      </div>
+    } @else if (uploadStatus() === 'error') {
+      <ng-icon name="lucideX" class="text-2xl text-red-500" aria-hidden="true"></ng-icon>
+      <div class="flex flex-col">
+        <span class="text-sm font-semibold text-foreground">Error al subir</span>
+        <span class="text-xs text-muted-foreground">{{ uploadFileName() }}</span>
+      </div>
+    }
+  </div>
+}
+
+@if (downloadStatus() !== 'idle') {
+  <div class="fixed bottom-24 right-6 z-50 flex items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 shadow-xl animate-in slide-in-from-bottom-8 fade-in">
+    @if (downloadStatus() === 'downloading') {
+      <ng-icon name="lucideLoader2" class="animate-spin text-2xl text-brand" aria-hidden="true"></ng-icon>
+      <div class="flex flex-col">
+        <span class="text-sm font-semibold text-foreground">Descargando archivo...</span>
+        <span class="text-xs text-muted-foreground">{{ downloadFileName() }}</span>
+      </div>
+    } @else if (downloadStatus() === 'success') {
+      <ng-icon name="lucideCheckCircle2" class="text-2xl text-emerald-500" aria-hidden="true"></ng-icon>
+      <div class="flex flex-col">
+        <span class="text-sm font-semibold text-foreground">Descarga completada</span>
+        <span class="text-xs text-muted-foreground">{{ downloadFileName() }}</span>
+      </div>
+    } @else if (downloadStatus() === 'error') {
+      <ng-icon name="lucideX" class="text-2xl text-red-500" aria-hidden="true"></ng-icon>
+      <div class="flex flex-col">
+        <span class="text-sm font-semibold text-foreground">Error al descargar</span>
+        <span class="text-xs text-muted-foreground">{{ downloadFileName() }}</span>
+      </div>
+    }
+  </div>
+}

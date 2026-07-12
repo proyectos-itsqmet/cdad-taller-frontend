@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
@@ -21,6 +21,7 @@ import { DataService } from '../../core/data/data.service';
 import { StorageMeter } from '../../shared/ui/storage-meter/storage-meter';
 import { ThemeToggle } from '../../shared/ui/theme-toggle/theme-toggle';
 import { UserAvatar } from '../../shared/ui/user-avatar/user-avatar';
+import { AuthService } from '../../core/auth/auth.service';
 
 interface NavLink {
   path: string;
@@ -34,7 +35,15 @@ interface NavLink {
 @Component({
   selector: 'app-shell',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, NgIcon, StorageMeter, UserAvatar, ThemeToggle],
+  imports: [
+    RouterOutlet,
+    RouterLink,
+    RouterLinkActive,
+    NgIcon,
+    StorageMeter,
+    UserAvatar,
+    ThemeToggle,
+  ],
   providers: [
     provideIcons({
       lucideBox,
@@ -62,8 +71,31 @@ interface NavLink {
 })
 export class AppShell {
   private readonly data = inject(DataService);
+  private readonly auth = inject(AuthService);
 
-  protected readonly user = this.data.currentUser;
+  protected readonly authUser = this.auth.currentUser;
+
+  protected readonly displayUser = computed(() => {
+    const u = this.authUser();
+    if (!u) {
+      return {
+        id: '',
+        email: '',
+        name: '?',
+        avatarColor: '#2563eb',
+        createdAt: '',
+        storageQuotaBytes: 0,
+      };
+    }
+    return {
+      id: '',
+      email: u.email,
+      name: `${u.firstName} ${u.lastName}`.trim(),
+      avatarColor: '#2563eb',
+      createdAt: '',
+      storageQuotaBytes: 0,
+    };
+  });
 
   protected readonly sidebarOpen = signal(false);
   protected readonly userMenuOpen = signal(false);

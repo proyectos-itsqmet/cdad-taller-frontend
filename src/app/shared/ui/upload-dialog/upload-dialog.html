@@ -1,0 +1,66 @@
+@if (open()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm transition-all" role="dialog" aria-modal="true" aria-labelledby="upload-dialog-title">
+    <div class="w-full max-w-md rounded-xl border border-border bg-surface p-6 shadow-xl animate-in zoom-in-95 fade-in">
+      <div class="flex items-center justify-between mb-4">
+        <h2 id="upload-dialog-title" class="font-heading text-lg font-bold tracking-tight text-foreground">Subir archivo</h2>
+        <button type="button" class="rounded-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" (click)="close()">
+          <ng-icon name="lucideX" class="text-xl" aria-hidden="true"></ng-icon>
+          <span class="sr-only">Cerrar</span>
+        </button>
+      </div>
+
+      <form (submit)="submit($event)">
+        <div class="mb-6 space-y-4">
+          <!-- Area for file input -->
+          <div class="relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-surface-muted/50 p-6 text-center transition-colors hover:border-brand/50 hover:bg-surface-muted">
+            <input 
+              type="file" 
+              class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+              (change)="onFileChange($event)"
+              required
+            />
+            <span class="mb-2 flex size-12 items-center justify-center rounded-full bg-brand/10 text-brand">
+              <ng-icon name="lucideUploadCloud" class="text-2xl" aria-hidden="true"></ng-icon>
+            </span>
+            <p class="text-sm font-medium text-foreground">
+              @if (selectedFile(); as file) {
+                {{ file.name }}
+              } @else {
+                Haz clic para elegir un archivo
+              }
+            </p>
+            <p class="mt-1 text-xs text-muted-foreground">
+              @if (selectedFile(); as file) {
+                {{ formatBytes(file.size) }}
+              } @else {
+                Cualquier formato está permitido
+              }
+            </p>
+          </div>
+
+          <!-- Star selection -->
+          <div class="flex items-center justify-between rounded-lg border border-border px-4 py-3">
+            <span class="text-sm font-medium text-foreground">Destacar archivo</span>
+            <button 
+              type="button"
+              (click)="toggleStar()"
+              class="flex size-9 items-center justify-center rounded-lg border border-border bg-surface text-muted-foreground transition-colors hover:border-brand/40 hover:bg-surface-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+              [title]="isStarred() ? 'Quitar destacado' : 'Marcar como destacado'"
+            >
+              <ng-icon name="lucideStar" class="text-lg transition-all" [class.text-warning]="isStarred()" [class.fill-current]="isStarred()"></ng-icon>
+            </button>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-3">
+          <button type="button" class="flex h-10 items-center justify-center rounded-lg px-4 text-sm font-medium text-foreground transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand" (click)="close()">
+            Cancelar
+          </button>
+          <button type="submit" [disabled]="!selectedFile()" class="flex h-10 items-center justify-center rounded-lg bg-brand px-4 text-sm font-semibold text-brand-fg transition-colors hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:cursor-not-allowed disabled:opacity-50">
+            Subir archivo
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, HostListener, signal } from '@angular/core';
+import { JsonPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
@@ -14,14 +15,21 @@ import {
   lucideShare2,
   lucideStar,
   lucideUpload,
+  lucideLoader2,
+  lucideCheckCircle2,
+  lucideX,
 } from '@ng-icons/lucide';
 
 import { DataService } from '../../core/data/data.service';
+import { AuthService } from '../../core/auth/auth.service';
 import { relativeTime } from '../../core/util/format';
 import { ActivityEvent } from '../../core/models/models';
 import { StorageMeter } from '../../shared/ui/storage-meter/storage-meter';
 import { FileIcon } from '../../shared/ui/file-icon/file-icon';
 import { EmptyState } from '../../shared/ui/empty-state/empty-state';
+import { UploadDialog } from '../../shared/ui/upload-dialog/upload-dialog';
+import { FileService } from '../../core/files/file.service';
+import { FileItem } from '../../core/models/models';
 
 /** Icon + tint per activity kind (dynamic names must all be registered). */
 const ACTIVITY_ICON: Record<ActivityEvent['kind'], string> = {
@@ -48,7 +56,7 @@ const ACTIVITY_VERB: Record<ActivityEvent['kind'], string> = {
 @Component({
   selector: 'kubo-home',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, NgIcon, StorageMeter, FileIcon, EmptyState],
+  imports: [RouterLink, NgIcon, StorageMeter, FileIcon, EmptyState, JsonPipe, UploadDialog],
   providers: [
     provideIcons({
       lucideUpload,
@@ -63,18 +71,28 @@ const ACTIVITY_VERB: Record<ActivityEvent['kind'], string> = {
       lucideClock,
       lucidePencil,
       lucidePlus,
+      lucideLoader2,
+      lucideCheckCircle2,
+      lucideX,
     }),
   ],
   templateUrl: './home.html',
 })
 export class Home {
   private readonly data = inject(DataService);
+  private readonly auth = inject(AuthService);
+  private readonly fileService = inject(FileService);
+
+  protected readonly uploadDialogOpen = signal(false);
+  readonly uploadStatus = signal<'idle' | 'uploading' | 'success' | 'error'>('idle');
+  protected readonly uploadFileName = signal('');
 
   protected readonly currentUser = this.data.currentUser;
+  protected readonly loginResponse = this.auth.currentUser;
 
   /** First token of the current user's name for the greeting. */
   protected readonly firstName = computed(
-    () => this.data.currentUser().name.split(' ')[0],
+    () => this.loginResponse()?.firstName || this.data.currentUser().name.split(' ')[0],
   );
 
   /** The three headline metrics, each linking to its section. */
@@ -142,4 +160,52 @@ export class Home {
       };
     });
   });
+
+  protected openUploadDialog(): void {
+    this.uploadDialogOpen.set(true);
+  }
+
+  @HostListener('window:beforeunload', ['$event'])
+  protected onBeforeUnload(event: BeforeUnloadEvent): void {
+    if (this.uploadStatus() === 'uploading') {
+      event.preventDefault();
+      event.returnValue = 'El archivo no se ha subido, si sales la carga se cancelará.';
+    }
+  }
+
+  protected onFileUploaded(event: { file: File; starred: boolean }): void {
+    const parentId = null; // En Inicio, siempre va a la raíz
+    
+    this.uploadFileName.set(event.file.name);
+    this.uploadStatus.set('uploading');
+    
+    this.fileService.uploadFile(event.file, parentId, event.starred).subscribe({
+      next: (fileId) => {
+        this.uploadStatus.set('success');
+        setTimeout(() => {
+          if (this.uploadStatus() === 'success') this.uploadStatus.set('idle');
+        }, 3000);
+        
+        const newFile: FileItem = {
+          id: fileId,
+          folderId: parentId,
+          userId: '', 
+          originalName: event.file.name,
+          minioObjectId: '',
+          size: event.file.size,
+          mimeType: event.file.type || 'application/octet-stream',
+          createdAt: new Date().toISOString(),
+          modifiedAt: new Date().toISOString(),
+          starred: event.starred
+        };
+        this.data.addFile(newFile);
+      },
+      error: () => {
+        this.uploadStatus.set('error');
+        setTimeout(() => {
+          if (this.uploadStatus() === 'error') this.uploadStatus.set('idle');
+        }, 3000);
+      }
+    });
+  }
 }

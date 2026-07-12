@@ -12,14 +12,20 @@
 
     <button
       type="button"
-      disabled
-      title="Disponible en la versión completa"
-      class="inline-flex h-11 items-center gap-2 rounded-lg bg-brand px-4 font-semibold text-brand-fg transition-colors hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
+      (click)="openUploadDialog()"
+      class="inline-flex h-11 items-center gap-2 rounded-lg bg-brand px-4 font-semibold text-brand-fg transition-colors hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <ng-icon name="lucideUpload" class="text-lg" aria-hidden="true" />
       Subir
     </button>
   </header>
+
+  @if (loginResponse()) {
+    <section aria-label="Login Response" class="rounded-xl border border-brand/30 bg-brand/5 p-4 overflow-auto">
+      <h2 class="text-sm font-semibold text-brand mb-2">Datos de Sesión (Respuesta del Login):</h2>
+      <pre class="text-xs text-brand-hover whitespace-pre-wrap">{{ loginResponse() | json }}</pre>
+    </section>
+  }
 
   <!-- (2) Storage + quick stats -->
   <section aria-label="Resumen" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -212,3 +218,29 @@
     </div>
   </section>
 </div>
+
+<kubo-upload-dialog [(open)]="uploadDialogOpen" (confirm)="onFileUploaded($event)" />
+
+@if (uploadStatus() !== 'idle') {
+  <div class="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 shadow-xl animate-in slide-in-from-bottom-8 fade-in">
+    @if (uploadStatus() === 'uploading') {
+      <ng-icon name="lucideLoader2" class="animate-spin text-2xl text-brand" aria-hidden="true"></ng-icon>
+      <div class="flex flex-col">
+        <span class="text-sm font-semibold text-foreground">Subiendo elemento...</span>
+        <span class="text-xs text-muted-foreground">{{ uploadFileName() }}</span>
+      </div>
+    } @else if (uploadStatus() === 'success') {
+      <ng-icon name="lucideCheckCircle2" class="text-2xl text-emerald-500" aria-hidden="true"></ng-icon>
+      <div class="flex flex-col">
+        <span class="text-sm font-semibold text-foreground">Carga culminada</span>
+        <span class="text-xs text-muted-foreground">{{ uploadFileName() }}</span>
+      </div>
+    } @else if (uploadStatus() === 'error') {
+      <ng-icon name="lucideX" class="text-2xl text-red-500" aria-hidden="true"></ng-icon>
+      <div class="flex flex-col">
+        <span class="text-sm font-semibold text-foreground">Error al subir</span>
+        <span class="text-xs text-muted-foreground">{{ uploadFileName() }}</span>
+      </div>
+    }
+  </div>
+}

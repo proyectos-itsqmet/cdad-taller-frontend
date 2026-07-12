@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { AuthService } from '../../../core/auth/auth.service';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
   lucideArrowRight,
@@ -42,11 +43,14 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 })
 export class Login {
   private readonly router = inject(Router);
+  private readonly authService = inject(AuthService);
 
   protected readonly email = signal('');
   protected readonly password = signal('');
   protected readonly remember = signal(false);
   protected readonly showPassword = signal(false);
+  protected readonly isLoading = signal(false);
+  protected readonly apiError = signal<string | null>(null);
 
   /** Flip once the user tries to submit — reveals every pending hint at once. */
   protected readonly submitted = signal(false);
@@ -93,10 +97,26 @@ export class Login {
   protected onSubmit(event: Event): void {
     event.preventDefault();
     this.submitted.set(true);
+    this.apiError.set(null);
     if (this.emailError() || this.passwordError()) {
       return;
     }
-    // Demo flow only — no authentication happens.
-    void this.router.navigate(['/home']);
+
+    this.isLoading.set(true);
+    this.authService
+      .login({
+        email: this.email().trim(),
+        password: this.password(),
+      })
+      .subscribe({
+        next: () => {
+          this.isLoading.set(false);
+          void this.router.navigate(['/home']);
+        },
+        error: (err) => {
+          this.isLoading.set(false);
+          this.apiError.set('Credenciales incorrectas o error en el servidor.');
+        },
+      });
   }
 }

@@ -206,4 +206,24 @@ export class DataService {
 
     return [...shareEvents, ...modifiedEvents].sort(byIsoDesc((e) => e.at));
   }
+
+  addFolder(folder: Folder): void {
+    const newFolder = { ...folder, userId: this.currentUser().id };
+    this._folders.update(folders => [...folders, newFolder]);
+  }
+
+  renameFolder(id: string, newName: string): void {
+    this._folders.update(folders =>
+      folders.map(f => (f.id === id ? { ...f, name: newName } : f))
+    );
+  }
+
+  deleteFolder(id: string): void {
+    this._folders.update(folders => folders.filter(f => f.id !== id));
+  }
+
+  addFile(file: FileItem): void {
+    const newFile = { ...file, userId: this.currentUser().id };
+    this._files.update(files => [newFile, ...files]);
+  }
 }

@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { AuthService } from '../../../core/auth/auth.service';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
   lucideArrowRight,
@@ -43,6 +44,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 })
 export class Register {
   private readonly router = inject(Router);
+  private readonly authService = inject(AuthService);
 
   protected readonly name = signal('');
   protected readonly email = signal('');
@@ -52,6 +54,8 @@ export class Register {
 
   protected readonly showPassword = signal(false);
   protected readonly showConfirm = signal(false);
+  protected readonly isLoading = signal(false);
+  protected readonly apiError = signal<string | null>(null);
 
   /** Flip once the user tries to submit — reveals every pending hint at once. */
   protected readonly submitted = signal(false);
@@ -139,6 +143,7 @@ export class Register {
   protected onSubmit(event: Event): void {
     event.preventDefault();
     this.submitted.set(true);
+    this.apiError.set(null);
     if (
       this.nameError() ||
       this.emailError() ||
@@ -148,7 +153,26 @@ export class Register {
     ) {
       return;
     }
-    // Demo flow only — no account is created.
-    void this.router.navigate(['/home']);
+    
+    this.isLoading.set(true);
+    const nameParts = this.name().trim().split(' ');
+    const firstName = nameParts[0];
+    const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+
+    this.authService.register({
+      firstName,
+      lastName,
+      email: this.email().trim(),
+      password: this.password()
+    }).subscribe({
+      next: () => {
+        this.isLoading.set(false);
+        void this.router.navigate(['/login']);
+      },
+      error: (err) => {
+        this.isLoading.set(false);
+        this.apiError.set('Ocurrió un error al registrar la cuenta. Es posible que el correo ya esté en uso.');
+      }
+    });
   }
 }

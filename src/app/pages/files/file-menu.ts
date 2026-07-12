@@ -87,29 +87,26 @@ const MOCK_TOOLTIP = 'Disponible en la versión completa';
         <button
           type="button"
           role="menuitem"
-          disabled
-          [title]="mockTooltip"
-          class="flex h-10 w-full cursor-not-allowed items-center gap-3 rounded-lg px-2.5 text-sm text-muted-foreground opacity-60"
+          class="flex h-10 w-full items-center gap-3 rounded-lg px-2.5 text-sm text-foreground transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          (click)="download.emit(); toggle($event)"
         >
-          <ng-icon name="lucideDownload" class="text-base" aria-hidden="true" />
+          <ng-icon name="lucideDownload" class="text-base text-muted-foreground" aria-hidden="true" />
           Descargar
         </button>
         <button
           type="button"
           role="menuitem"
-          disabled
-          [title]="mockTooltip"
-          class="flex h-10 w-full cursor-not-allowed items-center gap-3 rounded-lg px-2.5 text-sm text-muted-foreground opacity-60"
+          class="flex h-10 w-full items-center gap-3 rounded-lg px-2.5 text-sm text-foreground transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          (click)="rename.emit(); toggle($event)"
         >
-          <ng-icon name="lucidePencil" class="text-base" aria-hidden="true" />
+          <ng-icon name="lucidePencil" class="text-base text-muted-foreground" aria-hidden="true" />
           Renombrar
         </button>
         <button
           type="button"
           role="menuitem"
-          disabled
-          [title]="mockTooltip"
-          class="flex h-10 w-full cursor-not-allowed items-center gap-3 rounded-lg px-2.5 text-sm text-destructive opacity-60"
+          class="flex h-10 w-full items-center gap-3 rounded-lg px-2.5 text-sm text-destructive transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          (click)="delete.emit(); toggle($event)"
         >
           <ng-icon name="lucideTrash2" class="text-base" aria-hidden="true" />
           Eliminar
@@ -126,6 +123,12 @@ export class FileMenu {
   readonly details = output<void>();
   /** Request to open the share dialog for this file. */
   readonly share = output<void>();
+  /** Request to download this file. */
+  readonly download = output<void>();
+  /** Request to delete this file. */
+  readonly delete = output<void>();
+  /** Request to rename this file. */
+  readonly rename = output<void>();
 
   protected readonly menuOpen = signal(false);
   protected readonly mockTooltip = MOCK_TOOLTIP;

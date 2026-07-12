@@ -36,6 +36,7 @@ export interface Folder {
   /** Optional hex accent color for the folder chip/icon. */
   color?: string;
   createdAt: string;
+  starred?: boolean;
 }
 
 /** A stored file. `folderId === null` means it lives at the drive root. */

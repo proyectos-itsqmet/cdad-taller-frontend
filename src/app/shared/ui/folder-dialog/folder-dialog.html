@@ -1,0 +1,52 @@
+@if (open()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm transition-all" role="dialog" aria-modal="true" aria-labelledby="folder-dialog-title">
+    <div class="w-full max-w-md rounded-xl border border-border bg-surface p-6 shadow-xl animate-in zoom-in-95 fade-in">
+      <div class="flex items-center justify-between mb-4">
+        <h2 id="folder-dialog-title" class="font-heading text-lg font-bold tracking-tight text-foreground">Nueva carpeta</h2>
+        <button type="button" class="rounded-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" (click)="close()">
+          <ng-icon name="lucideX" class="text-xl" aria-hidden="true"></ng-icon>
+          <span class="sr-only">Cerrar</span>
+        </button>
+      </div>
+
+      <form (submit)="submit($event)">
+        <div class="mb-6 flex items-center gap-3">
+          <div class="relative flex-1">
+            <ng-icon name="lucideFolder" class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" aria-hidden="true"></ng-icon>
+            <input 
+              #nameInput
+              type="text" 
+              [value]="folderName()" 
+              (input)="onInput($event)"
+              placeholder="Nombre de la carpeta" 
+              class="h-10 w-full rounded-lg border border-border bg-surface pl-10 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+              required 
+            />
+          </div>
+          <button 
+            type="button"
+            (click)="toggleStar()"
+            class="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border bg-surface text-muted-foreground transition-colors hover:border-brand/40 hover:bg-surface-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+            [title]="isStarred() ? 'Quitar destacado' : 'Marcar como destacada'"
+          >
+            <ng-icon 
+              name="lucideStar" 
+              class="text-lg transition-all" 
+              [class.text-warning]="isStarred()"
+              [class.fill-current]="isStarred()"
+            ></ng-icon>
+          </button>
+        </div>
+
+        <div class="flex justify-end gap-3">
+          <button type="button" class="flex h-10 items-center justify-center rounded-lg px-4 text-sm font-medium text-foreground transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand" (click)="close()">
+            Cancelar
+          </button>
+          <button type="submit" [disabled]="!folderName().trim()" class="flex h-10 items-center justify-center rounded-lg bg-brand px-4 text-sm font-semibold text-brand-fg transition-colors hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:cursor-not-allowed disabled:opacity-50">
+            Crear
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
