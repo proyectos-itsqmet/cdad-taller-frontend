@@ -7,22 +7,20 @@ import {
   lucideBox,
   lucideEye,
   lucideEyeOff,
-  lucideInfo,
   lucideLock,
   lucideMail,
 } from '@ng-icons/lucide';
 import { AuthBrandPanel } from '../brand-panel/brand-panel';
 
-/** Illustrative email shape check — this is a mockup, not real validation. */
+/** Client-side email shape check run before we call the backend. */
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
- * Login — public, mock sign-in page (NO backend).
+ * Login — public sign-in page.
  *
  * Split layout: cyan brand panel on `lg`, form card on the right. Field state
- * lives in signals; validation is purely client-side and illustrative. On a
- * valid submit we navigate to /home for the demo flow — nothing is persisted
- * and we never claim a session was created.
+ * lives in signals; client-side validation runs first, then we call
+ * AuthService.login() against the backend. On success we navigate to /home.
  */
 @Component({
   selector: 'kubo-login',
@@ -36,7 +34,6 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       lucideEye,
       lucideEyeOff,
       lucideArrowRight,
-      lucideInfo,
     }),
   ],
   templateUrl: './login.html',
