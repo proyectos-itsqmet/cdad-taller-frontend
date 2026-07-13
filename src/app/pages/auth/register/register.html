@@ -30,9 +30,9 @@
       </header>
 
       <form class="flex flex-col gap-5" novalidate (submit)="onSubmit($event)">
-        <!-- Name -->
+        <!-- First Name -->
         <div class="flex flex-col gap-1.5">
-          <label for="reg-name" class="text-sm font-medium text-foreground">Nombre completo</label>
+          <label for="reg-first-name" class="text-sm font-medium text-foreground">Nombres</label>
           <div class="relative">
             <span
               class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground"
@@ -41,23 +41,54 @@
               <ng-icon name="lucideUser" class="text-base" />
             </span>
             <input
-              id="reg-name"
-              name="name"
+              id="reg-first-name"
+              name="firstName"
               type="text"
-              autocomplete="name"
-              placeholder="Tu nombre"
-              [value]="name()"
-              (input)="onNameInput($event)"
-              (blur)="nameTouched.set(true)"
-              [attr.aria-invalid]="showNameError()"
-              [attr.aria-describedby]="showNameError() ? 'reg-name-error' : null"
+              autocomplete="given-name"
+              placeholder="Tus nombres"
+              [value]="firstName()"
+              (input)="onFirstNameInput($event)"
+              (blur)="firstNameTouched.set(true)"
+              [attr.aria-invalid]="showFirstNameError()"
+              [attr.aria-describedby]="showFirstNameError() ? 'reg-first-name-error' : null"
               class="h-11 w-full rounded-lg border bg-surface pl-10 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              [class.border-border]="!showNameError()"
-              [class.border-destructive]="showNameError()"
+              [class.border-border]="!showFirstNameError()"
+              [class.border-destructive]="showFirstNameError()"
             />
           </div>
-          @if (showNameError()) {
-            <p id="reg-name-error" class="text-xs text-destructive" role="alert">{{ nameError() }}</p>
+          @if (showFirstNameError()) {
+            <p id="reg-first-name-error" class="text-xs text-destructive" role="alert">{{ firstNameError() }}</p>
+          }
+        </div>
+
+        <!-- Last Name -->
+        <div class="flex flex-col gap-1.5">
+          <label for="reg-last-name" class="text-sm font-medium text-foreground">Apellidos</label>
+          <div class="relative">
+            <span
+              class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground"
+              aria-hidden="true"
+            >
+              <ng-icon name="lucideUser" class="text-base" />
+            </span>
+            <input
+              id="reg-last-name"
+              name="lastName"
+              type="text"
+              autocomplete="family-name"
+              placeholder="Tus apellidos"
+              [value]="lastName()"
+              (input)="onLastNameInput($event)"
+              (blur)="lastNameTouched.set(true)"
+              [attr.aria-invalid]="showLastNameError()"
+              [attr.aria-describedby]="showLastNameError() ? 'reg-last-name-error' : null"
+              class="h-11 w-full rounded-lg border bg-surface pl-10 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              [class.border-border]="!showLastNameError()"
+              [class.border-destructive]="showLastNameError()"
+            />
+          </div>
+          @if (showLastNameError()) {
+            <p id="reg-last-name-error" class="text-xs text-destructive" role="alert">{{ lastNameError() }}</p>
           }
         </div>
 

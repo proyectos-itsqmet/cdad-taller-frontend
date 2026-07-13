@@ -37,6 +37,7 @@ export interface Folder {
   color?: string;
   createdAt: string;
   starred?: boolean;
+  itemsCount?: number;
 }
 
 /** A stored file. `folderId === null` means it lives at the drive root. */
@@ -53,6 +54,13 @@ export interface FileItem {
   createdAt: string;
   modifiedAt: string;
   starred?: boolean;
+  sharedByEmail?: string;
+  sharedByFirstName?: string;
+  sharedByLastName?: string;
+  sharedWithEmail?: string;
+  sharedWithFirstName?: string;
+  sharedWithLastName?: string;
+  sharedAt?: string;
 }
 
 /** A single share of a file from one user to another. */

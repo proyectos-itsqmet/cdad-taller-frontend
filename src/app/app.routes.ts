@@ -54,6 +54,11 @@ export const routes: Routes = [
       },
       {
         path: 'compartidos',
+        redirectTo: 'compartidos/conmigo',
+        pathMatch: 'full',
+      },
+      {
+        path: 'compartidos/:type',
         loadComponent: () => import('./pages/shared-with-me/shared-with-me').then((m) => m.SharedWithMe),
       },
       {

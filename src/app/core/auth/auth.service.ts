@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
-import {LoginBody, LoginResponse} from '../../model/interfaces';
+import {LoginBody, LoginResponse, RegisterBody, RegisterResponse} from '../../model/interfaces';
 
 @Injectable({
   providedIn: 'root'
@@ -29,7 +29,15 @@ export class AuthService {
     );
   }
 
-  register(userData: any): Observable<any> {
-    return this.http.post(`${this.API_URL}/register`, userData);
+  register(userData: RegisterBody): Observable<RegisterResponse> {
+    return this.http.post<RegisterResponse>(`${this.API_URL}/register`, userData);
+  }
+
+  logout(): Observable<void> {
+    return this.http.post<void>(`${this.API_URL}/logout`, {}, {
+      withCredentials: true
+    }).pipe(
+      tap(() => this.currentUser.set(null))
+    );
   }
 }

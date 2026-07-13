@@ -18,6 +18,7 @@ import {
   lucideImage,
   lucideTrash2,
   lucideX,
+  lucideUserMinus,
 } from '@ng-icons/lucide';
 
 import { DataService } from '../../../core/data/data.service';
@@ -50,7 +51,7 @@ const MOCK_TOOLTIP = 'Disponible en la version completa';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [NgIcon, FileIcon, UserAvatar],
   providers: [
-    provideIcons({ lucideX, lucideDownload, lucideTrash2, lucideImage }),
+    provideIcons({ lucideX, lucideDownload, lucideTrash2, lucideImage, lucideUserMinus }),
   ],
   templateUrl: './details-pane.html',
 })
@@ -66,6 +67,12 @@ export class DetailsPane {
   readonly download = output<void>();
   /** Request to delete this file. */
   readonly delete = output<void>();
+  /** Request to revoke this file. */
+  readonly revoke = output<void>();
+  /** Should show delete button */
+  readonly showDeleteButton = input<boolean>(true);
+  /** Should show revoke button */
+  readonly showRevokeButton = input<boolean>(false);
 
   /** Mock tooltip exposed to the template. */
   protected readonly mockTooltip = MOCK_TOOLTIP;
@@ -146,6 +153,11 @@ export class DetailsPane {
     return p === 'WRITE'
       ? 'bg-brand/10 text-brand'
       : 'bg-surface-muted text-muted-foreground';
+  }
+
+  protected getInitials(firstName?: string, lastName?: string): string {
+    if (!firstName && !lastName) return 'U';
+    return ((firstName?.[0] || '') + (lastName?.[0] || '')).toUpperCase() || 'U';
   }
 
   protected close(): void {

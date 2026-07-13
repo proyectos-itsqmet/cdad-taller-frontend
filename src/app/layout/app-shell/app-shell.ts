@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { injectQueryClient } from '@tanstack/angular-query-experimental';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
   lucideBox,
@@ -22,6 +23,7 @@ import { StorageMeter } from '../../shared/ui/storage-meter/storage-meter';
 import { ThemeToggle } from '../../shared/ui/theme-toggle/theme-toggle';
 import { UserAvatar } from '../../shared/ui/user-avatar/user-avatar';
 import { AuthService } from '../../core/auth/auth.service';
+import { User } from '../../core/models/models';
 
 interface NavLink {
   path: string;
@@ -72,10 +74,12 @@ interface NavLink {
 export class AppShell {
   private readonly data = inject(DataService);
   private readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
+  private readonly queryClient = injectQueryClient();
 
   protected readonly authUser = this.auth.currentUser;
 
-  protected readonly displayUser = computed(() => {
+  protected readonly displayUser = computed<User>(() => {
     const u = this.authUser();
     if (!u) {
       return {
@@ -127,5 +131,21 @@ export class AppShell {
   protected closeMenus(): void {
     this.sidebarOpen.set(false);
     this.userMenuOpen.set(false);
+  }
+
+  protected doLogout(): void {
+    this.closeUserMenu();
+    this.auth.logout().subscribe({
+      next: () => {
+        this.queryClient.invalidateQueries();
+        this.queryClient.clear();
+        this.router.navigate(['/']);
+      },
+      error: () => {
+        this.queryClient.invalidateQueries();
+        this.queryClient.clear();
+        this.router.navigate(['/']);
+      }
+    });
   }
 }

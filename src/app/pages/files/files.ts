@@ -10,7 +10,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { toSignal, toObservable } from '@angular/core/rxjs-interop';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
@@ -25,6 +25,8 @@ import {
   lucideLoader2,
   lucideCheckCircle2,
 } from '@ng-icons/lucide';
+import { injectQuery, injectQueryClient } from '@tanstack/angular-query-experimental';
+import { lastValueFrom } from 'rxjs';
 
 import { DataService } from '../../core/data/data.service';
 import { FileItem, Folder, User, ViewMode } from '../../core/models/models';
@@ -46,6 +48,7 @@ import { FolderMenu } from './folder-menu';
 import { ConfirmDialog } from '../../shared/ui/confirm-dialog/confirm-dialog';
 import { RenameDialog } from '../../shared/ui/rename-dialog/rename-dialog';
 import { SortField, SortMenu, SortState } from './sort-menu';
+import { FilesResponse } from '../../model/interfaces';
 
 /** localStorage key persisting the chosen view mode. */
 const VIEW_KEY = 'kubo-view';
@@ -55,11 +58,8 @@ const MOCK_TOOLTIP = 'Disponible en la versión completa';
 /**
  * Files — the file explorer at `/archivos` and `/archivos/:folderId`.
  *
- * Renders the current user's folders then files, honoring an in-page search,
- * a sort menu and a persisted view mode (grid-large / grid-small / list).
- * Selecting a file opens the shared details pane; the kebab "Compartir" opens
- * the shared share dialog. Read-only: upload / new-folder / write actions are
- * disabled mocks. SSR/zoneless-safe: every browser API is guarded.
+ * Uses TanStack Query for automatic caching, background refetching,
+ * and cache invalidation on mutations (create/rename/delete).
  */
 @Component({
   selector: 'kubo-files',
@@ -103,6 +103,7 @@ export class Files {
   protected readonly ds = inject(DataService);
   private readonly route = inject(ActivatedRoute);
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
+  private readonly queryClient = injectQueryClient();
 
   /** Formatters surfaced to the template (never render raw data). */
   protected readonly formatBytes = formatBytes;
@@ -116,28 +117,91 @@ export class Files {
   protected readonly folderId = computed(
     () => this.paramMap()?.get('folderId') ?? null,
   );
-  protected readonly currentFolderInfo = signal<Folder | null>(null);
+
+  // --- TanStack Query: files data ----------------------------------------
+  private readonly folderService = inject(FolderService);
+  private readonly fileService = inject(FileService);
+
+  /** The main query: fetches files + folders for the current folderId. */
+  protected readonly filesQuery = injectQuery(() => ({
+    queryKey: ['files', this.folderId()] as const,
+    queryFn: () => lastValueFrom(this.fileService.getFiles(this.folderId())),
+    enabled: this.isBrowser,
+  }));
+
+  // --- Derived signals from query ----------------------------------------
+  private readonly queryData = computed(() => this.filesQuery.data() as FilesResponse | undefined);
+
+  private readonly rawFolders = computed<Folder[]>(() => {
+    const data = this.queryData();
+    if (!data) return [];
+    return data.folders.map(f => ({
+      id: f.id,
+      userId: '',
+      parentId: f.parentId,
+      name: f.name,
+      createdAt: (f.createdAt as any).toString(),
+      starred: f.starred,
+      itemsCount: f.itemsCount,
+    }));
+  });
+
+  private readonly rawFiles = computed<FileItem[]>(() => {
+    const data = this.queryData();
+    if (!data) return [];
+    return data.files.map(f => ({
+      id: f.id,
+      folderId: f.folderId as string | null,
+      userId: '',
+      originalName: f.originalName,
+      minioObjectId: '',
+      size: f.sizeBytes,
+      mimeType: f.mimeType,
+      createdAt: (f.createdAt as any).toString(),
+      modifiedAt: (f.createdAt as any).toString(),
+      starred: f.starred,
+    }));
+  });
+
+  protected readonly currentFolderInfo = computed<Folder | null>(() => {
+    const data = this.queryData();
+    if (!data?.currentFolder) return null;
+    const cf = data.currentFolder;
+    return {
+      id: cf.id,
+      userId: '',
+      parentId: cf.parentId,
+      name: cf.name,
+      createdAt: (cf.createdAt as any).toString(),
+      starred: cf.starred,
+    };
+  });
 
   /** Ancestor chain for the breadcrumbs. */
   protected readonly crumbs = computed(() => {
     const id = this.folderId();
     if (!id) return [{ id: null, name: 'Mi unidad' } as any];
-    
+
     const current = this.currentFolderInfo();
     return [
       { id: null, name: 'Mi unidad' } as any,
-      { id, name: current ? current.name : 'Carpeta' } as any
+      { id, name: current ? current.name : 'Carpeta' } as any,
     ];
   });
-  
+
   /** Heading for the current folder. */
   protected readonly title = computed(() => {
     const id = this.folderId();
     if (!id) return 'Mi unidad';
-    
+
     const current = this.currentFolderInfo();
     return current ? current.name : 'Carpeta';
   });
+
+  // --- Loading state (from TanStack Query) --------------------------------
+  protected readonly loading = computed(() => this.filesQuery.isPending());
+  /** Placeholder cells for the grid skeleton while a folder "loads". */
+  protected readonly skeletonSlots = Array.from({ length: 12 }, (_, i) => i);
 
   // --- View mode (persisted) --------------------------------------------
   protected readonly viewMode = signal<ViewMode>('grid-large');
@@ -149,84 +213,39 @@ export class Files {
   private readonly searchTerm = computed(() => this.norm(this.search().trim()));
   protected readonly sort = signal<SortState>({ field: 'name', dir: 'asc' });
 
-  // --- Simulated load ----------------------------------------------------
-  protected readonly loading = signal(false);
-  /** Placeholder cells for the grid skeleton while a folder "loads". */
-  protected readonly skeletonSlots = Array.from({ length: 12 }, (_, i) => i);
-
   // --- Selection + shared widgets ---------------------------------------
   protected readonly selected = signal<FileItem | null>(null);
   protected readonly detailsOpen = signal(false);
   protected readonly shareOpen = signal(false);
+  protected readonly shareItem = signal<{id: string, name: string, type: 'file' | 'folder'} | null>(null);
+  protected readonly isSharing = signal(false);
+  protected readonly shareError = signal<string | null>(null);
   protected readonly folderDialogOpen = signal(false);
   protected readonly uploadDialogOpen = signal(false);
-  
+
+  protected readonly successModalOpen = signal(false);
+  protected readonly successMessage = signal('');
+
   readonly uploadStatus = signal<'idle' | 'uploading' | 'success' | 'error'>('idle');
-  
-  readonly downloadStatus = signal<'idle' | 'downloading' | 'success' | 'error'>('idle');
+
+  protected readonly downloadStatus = signal<'idle' | 'downloading' | 'success' | 'error'>('idle');
   protected readonly downloadFileName = signal('');
+  protected readonly downloadProgress = signal(0);
   protected readonly uploadFileName = signal('');
-  
+  protected readonly uploadProgress = signal(0);
+
   protected readonly deleteConfirmOpen = signal(false);
   protected readonly isDeleting = signal(false);
-  protected readonly itemToDelete = signal<{ type: 'file' | 'folder', item: any } | null>(null);
+  protected readonly itemToDelete = signal<{ type: 'file' | 'folder'; item: any } | null>(null);
 
   protected readonly renameDialogOpen = signal(false);
   protected readonly isRenaming = signal(false);
-  protected readonly itemToRename = signal<{ type: 'file' | 'folder', item: any } | null>(null);
-
-  private readonly folderService = inject(FolderService);
-  private readonly fileService = inject(FileService);
+  protected readonly itemToRename = signal<{ type: 'file' | 'folder'; item: any } | null>(null);
 
   /** Local, visual-only star overrides (this mockup never writes to storage). */
   private readonly starOverrides = signal<Record<string, boolean>>({});
 
-  // --- Data sources ------------------------------------------------------
-  private readonly rawFolders = signal<Folder[]>([]);
-  private readonly rawFiles = signal<FileItem[]>([]);
-
-  private loadData(folderId: string | null): void {
-    this.loading.set(true);
-    this.fileService.getFiles(folderId).subscribe({
-      next: (res) => {
-        this.rawFolders.set(res.folders.map(f => ({
-          id: f.id,
-          userId: '',
-          parentId: f.parentId,
-          name: f.name,
-          createdAt: (f.createdAt as any).toString(),
-          starred: f.starred
-        })));
-        this.rawFiles.set(res.files.map(f => ({
-          id: f.id,
-          folderId: f.folderId as string | null,
-          userId: '',
-          originalName: f.originalName,
-          minioObjectId: '',
-          size: f.sizeBytes,
-          mimeType: f.mimeType,
-          createdAt: (f.createdAt as any).toString(),
-          modifiedAt: (f.createdAt as any).toString(),
-          starred: f.starred
-        })));
-        const cf = res.currentFolder;
-        this.currentFolderInfo.set(cf ? {
-          id: cf.id,
-          userId: '',
-          parentId: cf.parentId,
-          name: cf.name,
-          createdAt: (cf.createdAt as any).toString(),
-          starred: cf.starred
-        } : null);
-        this.loading.set(false);
-      },
-      error: (err) => {
-        console.error('Error loading files:', err);
-        this.loading.set(false);
-      }
-    });
-  }
-
+  // --- Filtered + sorted views -------------------------------------------
   protected readonly visibleFolders = computed<Folder[]>(() => {
     const term = this.searchTerm();
     let list = this.rawFolders();
@@ -273,12 +292,16 @@ export class Files {
         localStorage.setItem(VIEW_KEY, mode);
       }
     });
+  }
 
-    // Fetch real data whenever folderId changes
-    this.route.paramMap.subscribe(params => {
-      if (!this.isBrowser) return;
-      this.loadData(params.get('folderId') ?? null);
-    });
+  // --- Cache invalidation helper -----------------------------------------
+  /** Invalidates the files query for a specific folder (or all folders). */
+  private invalidateFiles(folderId?: string | null): void {
+    if (folderId !== undefined) {
+      this.queryClient.invalidateQueries({ queryKey: ['files', folderId] });
+    } else {
+      this.queryClient.invalidateQueries({ queryKey: ['files'] });
+    }
   }
 
   // --- Search helpers ----------------------------------------------------
@@ -324,7 +347,7 @@ export class Files {
             new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
           break;
         case 'size':
-          cmp = this.folderCount(a.id) - this.folderCount(b.id);
+          cmp = this.folderCount(a) - this.folderCount(b);
           break;
         default:
           cmp = a.name.localeCompare(b.name, 'es');
@@ -362,13 +385,12 @@ export class Files {
 
   // --- Per-item helpers --------------------------------------------------
   /** Direct child count (subfolders + files) of a folder. */
-  protected folderCount(id: string): number {
-    return this.ds.childFolders(id).length + this.ds.filesInFolder(id).length;
+  protected folderCount(folder: Folder): number {
+    return folder.itemsCount || 0;
   }
   /** Humanized item count for a folder tile/cell. */
-  protected folderCountLabel(id: string): string {
-    const n = this.folderCount(id);
-    if (n === 0) return 'Vacía';
+  protected folderCountLabel(folder: Folder): string {
+    const n = folder.itemsCount || 0;
     return n === 1 ? '1 elemento' : `${n} elementos`;
   }
 
@@ -417,8 +439,53 @@ export class Files {
     this.detailsOpen.set(true);
   }
   protected openShare(file: FileItem): void {
-    this.selected.set(file);
+    this.shareError.set(null);
+    this.shareItem.set({ id: file.id, name: file.originalName, type: 'file' });
     this.shareOpen.set(true);
+  }
+
+  protected promptShareFolder(folder: Folder): void {
+    this.shareError.set(null);
+    this.shareItem.set({ id: folder.id, name: folder.name, type: 'folder' });
+    this.shareOpen.set(true);
+  }
+
+  protected confirmShare(targetUserEmail: string): void {
+    const item = this.shareItem();
+    if (!item) return;
+
+    this.isSharing.set(true);
+    this.shareError.set(null);
+
+    const shareObs = item.type === 'file'
+      ? this.fileService.shareFile(item.id, targetUserEmail)
+      : this.fileService.shareFolder(item.id, targetUserEmail);
+
+    shareObs.subscribe({
+      next: (res) => {
+        this.isSharing.set(false);
+        this.shareOpen.set(false);
+        this.shareItem.set(null);
+        if (res && res.message) {
+          this.successMessage.set(res.message);
+        } else {
+          this.successMessage.set('Compartido exitosamente');
+        }
+        this.successModalOpen.set(true);
+        // Invalidate both files and shared-by-me to ensure updates propagate
+        this.queryClient.invalidateQueries({ queryKey: ['shared-by-me'] });
+        this.queryClient.invalidateQueries({ queryKey: ['stats'] });
+        this.invalidateFiles(this.folderId());
+      },
+      error: (err) => {
+        this.isSharing.set(false);
+        if (err.error && err.error.message) {
+          this.shareError.set(err.error.message);
+        } else {
+          this.shareError.set('Error al compartir el elemento. Verifica el correo e intenta de nuevo.');
+        }
+      }
+    });
   }
 
   protected openNewFolderDialog(): void {
@@ -426,21 +493,19 @@ export class Files {
   }
 
   protected onFolderCreated(event: { name: string; starred: boolean }): void {
-    const parentId = this.folderId(); // null if at root
-    this.loading.set(true);
-    
+    const parentId = this.folderId();
+
     this.folderService.create(event.name, parentId, event.starred).subscribe({
       next: (folder) => {
-        this.loading.set(false);
-        this.loadData(parentId);
+        this.invalidateFiles(parentId);
+        this.queryClient.invalidateQueries({ queryKey: ['stats'] });
         if (event.starred) {
           this.starOverrides.update(m => ({ ...m, [folder.id]: true }));
         }
       },
       error: () => {
-        this.loading.set(false);
-        alert('Error al crear la carpeta'); // Simple fallback error handling
-      }
+        alert('Error al crear la carpeta');
+      },
     });
   }
 
@@ -458,29 +523,46 @@ export class Files {
 
   protected onFileUploaded(event: { file: File; starred: boolean }): void {
     const parentId = this.folderId();
-    
+
     this.uploadFileName.set(event.file.name);
     this.uploadStatus.set('uploading');
-    
+    this.uploadProgress.set(0);
+
+    const progressInterval = setInterval(() => {
+      if (this.uploadProgress() < 90) {
+        this.uploadProgress.update(p => Math.min(90, p + Math.floor(Math.random() * 15) + 5));
+      }
+    }, 250);
+
     this.fileService.uploadFile(event.file, parentId, event.starred).subscribe({
-      next: (fileId) => {
-        this.uploadStatus.set('success');
-        setTimeout(() => {
-          if (this.uploadStatus() === 'success') this.uploadStatus.set('idle');
-        }, 3000);
-        
-        this.loadData(parentId);
-        
-        if (event.starred) {
-          this.starOverrides.update(m => ({ ...m, [fileId]: true }));
+      next: (res) => {
+        if (res.type === 'progress') {
+          if (res.percent > this.uploadProgress() || res.percent === 100) {
+            this.uploadProgress.set(res.percent);
+          }
+        } else {
+          clearInterval(progressInterval);
+          this.uploadProgress.set(100);
+          this.uploadStatus.set('success');
+          setTimeout(() => {
+            if (this.uploadStatus() === 'success') this.uploadStatus.set('idle');
+          }, 3000);
+
+          this.invalidateFiles(parentId);
+          this.queryClient.invalidateQueries({ queryKey: ['stats'] });
+
+          if (event.starred) {
+            this.starOverrides.update(m => ({ ...m, [res.fileId]: true }));
+          }
         }
       },
       error: () => {
+        clearInterval(progressInterval);
         this.uploadStatus.set('error');
         setTimeout(() => {
           if (this.uploadStatus() === 'error') this.uploadStatus.set('idle');
         }, 3000);
-      }
+      },
     });
   }
 
@@ -494,32 +576,49 @@ export class Files {
   protected downloadFile(file: FileItem): void {
     this.downloadFileName.set(file.originalName);
     this.downloadStatus.set('downloading');
-    
+    this.downloadProgress.set(0);
+
+    const progressInterval = setInterval(() => {
+      if (this.downloadProgress() < 90) {
+        this.downloadProgress.update(p => Math.min(90, p + Math.floor(Math.random() * 15) + 5));
+      }
+    }, 250);
+
     this.fileService.getDownloadUrl(file.id).subscribe({
       next: (res) => {
         this.fileService.downloadFromUrl(res.downloadUrl).subscribe({
-          next: (blob) => {
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = file.originalName;
-            a.click();
-            window.URL.revokeObjectURL(url);
-            
-            this.downloadStatus.set('success');
-            setTimeout(() => {
-              if (this.downloadStatus() === 'success') this.downloadStatus.set('idle');
-            }, 3000);
+          next: (dlRes) => {
+            if (dlRes.type === 'progress') {
+              if (dlRes.percent > this.downloadProgress() || dlRes.percent === 100) {
+                this.downloadProgress.set(dlRes.percent);
+              }
+            } else {
+              clearInterval(progressInterval);
+              this.downloadProgress.set(100);
+              const url = window.URL.createObjectURL(dlRes.blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = file.originalName;
+              a.click();
+              window.URL.revokeObjectURL(url);
+
+              this.downloadStatus.set('success');
+              setTimeout(() => {
+                if (this.downloadStatus() === 'success') this.downloadStatus.set('idle');
+              }, 3000);
+            }
           },
           error: () => {
+            clearInterval(progressInterval);
             this.downloadStatus.set('error');
             setTimeout(() => {
               if (this.downloadStatus() === 'error') this.downloadStatus.set('idle');
             }, 3000);
-          }
+          },
         });
       },
       error: () => {
+        clearInterval(progressInterval);
         this.downloadStatus.set('error');
         setTimeout(() => {
           if (this.downloadStatus() === 'error') this.downloadStatus.set('idle');
@@ -527,6 +626,7 @@ export class Files {
       }
     });
   }
+
 
   protected promptDeleteFile(file: FileItem): void {
     this.itemToDelete.set({ type: 'file', item: file });
@@ -555,7 +655,8 @@ export class Files {
       const file = toDelete.item as FileItem;
       this.fileService.deleteFile(file.id).subscribe({
         next: () => {
-          this.loadData(this.folderId());
+          this.invalidateFiles(this.folderId());
+          this.queryClient.invalidateQueries({ queryKey: ['stats'] });
           this.isDeleting.set(false);
           this.deleteConfirmOpen.set(false);
           if (this.selected()?.id === file.id) {
@@ -566,13 +667,14 @@ export class Files {
           this.isDeleting.set(false);
           this.deleteConfirmOpen.set(false);
           alert('Error al eliminar el archivo');
-        }
+        },
       });
     } else {
       const folder = toDelete.item as Folder;
       this.folderService.delete(folder.id).subscribe({
         next: () => {
-          this.loadData(this.folderId());
+          this.invalidateFiles(this.folderId());
+          this.queryClient.invalidateQueries({ queryKey: ['stats'] });
           this.isDeleting.set(false);
           this.deleteConfirmOpen.set(false);
         },
@@ -580,7 +682,7 @@ export class Files {
           this.isDeleting.set(false);
           this.deleteConfirmOpen.set(false);
           alert('Error al eliminar la carpeta');
-        }
+        },
       });
     }
   }
@@ -618,27 +720,27 @@ export class Files {
       const file = toRename.item as FileItem;
       this.fileService.renameFile(file.id, newName).subscribe({
         next: () => {
-          this.loadData(this.folderId());
+          this.invalidateFiles(this.folderId());
           this.isRenaming.set(false);
           this.renameDialogOpen.set(false);
         },
         error: () => {
           this.isRenaming.set(false);
           alert('Error al renombrar el archivo');
-        }
+        },
       });
     } else {
       const folder = toRename.item as Folder;
       this.folderService.rename(folder.id, newName).subscribe({
         next: () => {
-          this.loadData(this.folderId());
+          this.invalidateFiles(this.folderId());
           this.isRenaming.set(false);
           this.renameDialogOpen.set(false);
         },
         error: () => {
           this.isRenaming.set(false);
           alert('Error al renombrar la carpeta');
-        }
+        },
       });
     }
   }

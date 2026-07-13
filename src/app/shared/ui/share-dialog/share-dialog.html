@@ -9,144 +9,78 @@
 
     <!-- Dialog -->
     <div
-      #dialog
       role="dialog"
       aria-modal="true"
-      [attr.aria-labelledby]="titleId"
-      class="relative z-10 flex max-h-[85dvh] w-full max-w-lg flex-col overflow-hidden rounded-xl border border-border bg-surface shadow-2xl"
-      (keydown)="onKeydown($event)"
+      class="relative z-10 w-full max-w-sm rounded-xl border border-border bg-surface shadow-2xl"
     >
-      <!-- Header -->
-      <header class="flex items-center justify-between gap-3 border-b border-border p-4">
-        <h2
-          [id]="titleId"
-          class="font-heading min-w-0 truncate text-lg font-semibold text-foreground"
-        >
-          {{ titleText() }}
+      <header class="flex items-center justify-between border-b border-border px-5 py-4">
+        <h2 class="font-heading text-lg font-semibold text-foreground">
+          {{ mode() === 'share' ? 'Compartir ' : 'Revocar acceso a ' }} {{ itemName() ? '"' + itemName() + '"' : 'elemento' }}
         </h2>
         <button
-          #closeBtn
           type="button"
-          class="flex size-11 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-surface-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          aria-label="Cerrar"
           (click)="close()"
+          class="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-surface-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          aria-label="Cerrar"
         >
           <ng-icon name="lucideX" class="text-xl" aria-hidden="true" />
         </button>
       </header>
 
-      <!-- Body -->
-      <div class="flex-1 space-y-6 overflow-y-auto p-4">
-        <!-- Add people -->
-        <div class="space-y-2">
-          <label for="kubo-share-email" class="text-sm font-medium text-foreground">
-            Agregar personas
-          </label>
-          <div class="flex flex-col gap-2 sm:flex-row">
-            <div class="relative flex-1">
-              <ng-icon
-                name="lucideMail"
-                class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base text-muted-foreground"
-                aria-hidden="true"
-              />
-              <input
-                id="kubo-share-email"
-                type="email"
-                placeholder="Correo electrónico"
-                class="min-h-11 w-full rounded-lg border border-border bg-background pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              />
-            </div>
-            <select
-              aria-label="Nivel de permiso"
-              class="min-h-11 rounded-lg border border-border bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      <form class="flex flex-col gap-5 p-5" (submit)="submit($event)">
+        <div class="flex flex-col gap-1.5">
+          <label for="kubo-share-email" class="text-sm font-medium text-foreground">Correo electrónico del usuario</label>
+          <div class="relative">
+            <span
+              class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground"
+              aria-hidden="true"
             >
-              <option value="READ">Puede ver</option>
-              <option value="WRITE">Puede editar</option>
-            </select>
-            <button
-              type="button"
-              disabled
-              [title]="mockTooltip"
-              class="min-h-11 shrink-0 rounded-lg bg-brand px-4 text-sm font-semibold text-brand-fg disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              Enviar
-            </button>
+              <ng-icon name="lucideMail" class="text-base" />
+            </span>
+            <input
+              #emailInput
+              id="kubo-share-email"
+              type="email"
+              placeholder="correo@ejemplo.com"
+              [value]="email()"
+              (input)="onInput($event)"
+              class="h-11 w-full rounded-lg border bg-background pl-10 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring border-border"
+            />
           </div>
+          @if (error()) {
+            <p class="text-xs text-destructive">{{ error() }}</p>
+          } @else if (email().length > 0 && !isEmailValid()) {
+            <p class="text-xs text-destructive">Por favor ingresá un correo válido.</p>
+          }
         </div>
 
-        <!-- People with access -->
-        <section class="space-y-3">
-          <h3 class="flex items-center gap-2 text-sm font-semibold text-foreground">
-            <ng-icon name="lucideUsers" class="text-base text-muted-foreground" aria-hidden="true" />
-            Personas con acceso
-          </h3>
-
-          @if (shares().length > 0) {
-            <ul class="space-y-3">
-              @for (row of shares(); track row.share.id) {
-                <li class="flex items-center gap-3">
-                  <kubo-user-avatar [user]="row.user" [size]="36" />
-                  <div class="min-w-0 flex-1">
-                    <p class="truncate text-sm font-medium text-foreground">{{ row.user.name }}</p>
-                    <p class="truncate text-xs text-muted-foreground">{{ row.user.email }}</p>
-                    <p class="truncate text-xs text-muted-foreground">Compartido por {{ sharedBy(row) }}</p>
-                  </div>
-                  <select
-                    disabled
-                    [title]="mockTooltip"
-                    [value]="row.share.permissions"
-                    [attr.aria-label]="'Permiso de ' + row.user.name"
-                    class="min-h-9 shrink-0 rounded-md border border-border bg-surface-muted px-2 text-xs text-muted-foreground disabled:cursor-not-allowed disabled:opacity-70"
-                  >
-                    <option value="READ">Puede ver</option>
-                    <option value="WRITE">Puede editar</option>
-                  </select>
-                  <button
-                    type="button"
-                    disabled
-                    [title]="mockTooltip"
-                    aria-label="Quitar acceso"
-                    class="flex size-9 shrink-0 items-center justify-center rounded-md text-muted-foreground disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    <ng-icon name="lucideX" aria-hidden="true" />
-                  </button>
-                </li>
-              }
-            </ul>
-          } @else {
-            <p class="text-sm text-muted-foreground">
-              Este archivo aún no se ha compartido con nadie.
-            </p>
-          }
-        </section>
-      </div>
-
-      <!-- Footer -->
-      <footer class="flex flex-col gap-3 border-t border-border p-4 sm:flex-row sm:items-center sm:justify-between">
-        <div class="flex flex-col gap-1">
+        <div class="flex items-center justify-end gap-3 pt-2">
           <button
             type="button"
-            class="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-border bg-surface px-3 text-sm font-medium text-foreground transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            (click)="copyLink()"
+            (click)="close()"
+            class="h-10 rounded-lg px-4 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            @if (copied()) {
-              <ng-icon name="lucideCheck" class="text-success" aria-hidden="true" />
-              <span>Copiado</span>
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            [disabled]="!isEmailValid() || isSubmitting()"
+            class="h-10 rounded-lg px-5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
+            [class.bg-brand]="mode() === 'share'"
+            [class.text-brand-fg]="mode() === 'share'"
+            [class.hover:bg-brand-hover]="mode() === 'share'"
+            [class.bg-destructive]="mode() === 'revoke'"
+            [class.text-destructive-foreground]="mode() === 'revoke'"
+            [class.hover:bg-destructive/90]="mode() === 'revoke'"
+          >
+            @if (mode() === 'share') {
+              {{ isSubmitting() ? 'Compartiendo...' : 'Compartir' }}
             } @else {
-              <ng-icon name="lucideLink" aria-hidden="true" />
-              <span>Copiar enlace</span>
+              {{ isSubmitting() ? 'Revocando...' : 'Revocar acceso' }}
             }
           </button>
-          <span class="text-xs text-muted-foreground">Cualquiera con el enlace puede ver</span>
         </div>
-        <button
-          type="button"
-          class="min-h-11 rounded-lg bg-brand px-5 text-sm font-semibold text-brand-fg transition-colors hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          (click)="close()"
-        >
-          Listo
-        </button>
-      </footer>
+      </form>
     </div>
   </div>
 }

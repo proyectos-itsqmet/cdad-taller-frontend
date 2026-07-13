@@ -1,7 +1,7 @@
 @if (open()) {
-  <!-- Backdrop: mobile only; the drawer sits beside content on larger screens. -->
+  <!-- Backdrop -->
   <div
-    class="fixed inset-0 z-40 bg-black/50 motion-safe:transition-opacity sm:hidden"
+    class="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm motion-safe:transition-opacity animate-in fade-in"
     aria-hidden="true"
     (click)="close()"
   ></div>
@@ -71,18 +71,30 @@
         <div class="flex items-center justify-between gap-3">
           <dt class="shrink-0 text-muted-foreground">Propietario</dt>
           <dd class="flex items-center gap-2 font-medium text-foreground">
-            @if (owner(); as o) {
+            @if (f.sharedByEmail) {
+              <span class="flex size-6 shrink-0 items-center justify-center rounded-full bg-brand/10 text-[10px] font-bold text-brand">
+                {{ getInitials(f.sharedByFirstName, f.sharedByLastName) }}
+              </span>
+              <span class="truncate">{{ f.sharedByFirstName || 'Usuario' }} {{ f.sharedByLastName || '' }}</span>
+            } @else if (owner(); as o) {
               <kubo-user-avatar [user]="o" [size]="24" />
-              <span>{{ o.name }}</span>
+              <span class="truncate">{{ o.name }}</span>
             } @else {
-              <span class="text-muted-foreground">Desconocido</span>
+              <span class="text-muted-foreground truncate">Yo</span>
             }
           </dd>
         </div>
-        <div class="flex items-start justify-between gap-3">
-          <dt class="shrink-0 text-muted-foreground">Modificado</dt>
-          <dd class="text-right font-medium text-foreground">{{ relativeTime(f.modifiedAt) }}</dd>
-        </div>
+        @if (f.sharedAt) {
+          <div class="flex items-start justify-between gap-3">
+            <dt class="shrink-0 text-muted-foreground">Compartido el</dt>
+            <dd class="text-right font-medium text-foreground">{{ relativeTime(f.sharedAt) }}</dd>
+          </div>
+        } @else {
+          <div class="flex items-start justify-between gap-3">
+            <dt class="shrink-0 text-muted-foreground">Modificado</dt>
+            <dd class="text-right font-medium text-foreground">{{ relativeTime(f.modifiedAt) }}</dd>
+          </div>
+        }
         <div class="flex items-start justify-between gap-3">
           <dt class="shrink-0 text-muted-foreground">Creado</dt>
           <dd class="text-right font-medium text-foreground">{{ relativeTime(f.createdAt) }}</dd>
@@ -92,7 +104,19 @@
       <!-- Shared with -->
       <section class="space-y-3">
         <h4 class="font-heading text-sm font-semibold text-foreground">Compartido con</h4>
-        @if (shares().length > 0) {
+        @if (f.sharedWithEmail) {
+          <ul class="space-y-2">
+            <li class="flex items-center gap-2">
+              <span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-brand/10 text-xs font-bold text-brand">
+                {{ getInitials(f.sharedWithFirstName, f.sharedWithLastName) }}
+              </span>
+              <div class="flex min-w-0 flex-1 flex-col">
+                <span class="truncate text-sm font-medium text-foreground">{{ f.sharedWithFirstName || 'Usuario' }} {{ f.sharedWithLastName || '' }}</span>
+                <span class="truncate text-xs text-muted-foreground">{{ f.sharedWithEmail }}</span>
+              </div>
+            </li>
+          </ul>
+        } @else if (shares().length > 0) {
           <ul class="space-y-2">
             @for (row of shares(); track row.share.id) {
               <li class="flex items-center gap-2">
@@ -123,14 +147,26 @@
         <ng-icon name="lucideDownload" aria-hidden="true" />
         Descargar
       </button>
-      <button
-        type="button"
-        class="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-border bg-surface px-3 text-sm font-medium text-destructive transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        (click)="delete.emit()"
-      >
-        <ng-icon name="lucideTrash2" aria-hidden="true" />
-        Eliminar
-      </button>
+      @if (showDeleteButton()) {
+        <button
+          type="button"
+          class="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-border bg-surface px-3 text-sm font-medium text-destructive transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          (click)="delete.emit()"
+        >
+          <ng-icon name="lucideTrash2" aria-hidden="true" />
+          Eliminar
+        </button>
+      }
+      @if (showRevokeButton()) {
+        <button
+          type="button"
+          class="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-border bg-surface px-3 text-sm font-medium text-destructive transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          (click)="revoke.emit()"
+        >
+          <ng-icon name="lucideUserMinus" aria-hidden="true" />
+          Revocar
+        </button>
+      }
     </div>
   } @else {
     <div class="flex flex-1 items-center justify-center p-8 text-center">

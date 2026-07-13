@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, input, output, signal } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideEllipsisVertical, lucidePencil, lucideTrash2 } from '@ng-icons/lucide';
+import { lucideEllipsisVertical, lucidePencil, lucideTrash2, lucideShare2, lucideUserMinus } from '@ng-icons/lucide';
 import { Folder } from '../../core/models/models';
 
 @Component({
@@ -12,6 +12,8 @@ import { Folder } from '../../core/models/models';
       lucideEllipsisVertical,
       lucidePencil,
       lucideTrash2,
+      lucideShare2,
+      lucideUserMinus,
     }),
   ],
   host: {
@@ -40,6 +42,15 @@ import { Folder } from '../../core/models/models';
           type="button"
           role="menuitem"
           class="flex h-10 w-full items-center gap-3 rounded-lg px-2.5 text-sm text-foreground transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          (click)="share.emit(); toggle($event)"
+        >
+          <ng-icon name="lucideShare2" class="text-base text-muted-foreground" aria-hidden="true" />
+          Compartir
+        </button>
+        <button
+          type="button"
+          role="menuitem"
+          class="flex h-10 w-full items-center gap-3 rounded-lg px-2.5 text-sm text-foreground transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           (click)="rename.emit(); toggle($event)"
         >
           <ng-icon name="lucidePencil" class="text-base text-muted-foreground" aria-hidden="true" />
@@ -62,6 +73,7 @@ export class FolderMenu {
   readonly folder = input.required<Folder>();
   readonly delete = output<void>();
   readonly rename = output<void>();
+  readonly share = output<void>();
   protected readonly menuOpen = signal(false);
 
   protected toggle(event: Event): void {

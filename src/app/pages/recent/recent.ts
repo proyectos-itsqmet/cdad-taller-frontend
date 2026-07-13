@@ -6,51 +6,59 @@ import {
   signal,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideClock, lucideFolderOpen } from '@ng-icons/lucide';
+import { lucideClock, lucideFolderOpen, lucideSearch, lucideFilter, lucideChevronLeft, lucideChevronRight, lucideFile, lucideFolder, lucideHistory } from '@ng-icons/lucide';
+import { injectQuery } from '@tanstack/angular-query-experimental';
+import { lastValueFrom } from 'rxjs';
 
-import { DataService } from '../../core/data/data.service';
-import { FileItem } from '../../core/models/models';
-import { formatBytes, friendlyType, relativeTime } from '../../core/util/format';
-import { FileIcon } from '../../shared/ui/file-icon/file-icon';
+import { FileService } from '../../core/files/file.service';
+import { relativeTime } from '../../core/util/format';
 import { EmptyState } from '../../shared/ui/empty-state/empty-state';
-import { DetailsPane } from '../../shared/ui/details-pane/details-pane';
 
-/**
- * "Recientes" — the current user's files sorted by modifiedAt desc (capped at
- * 30). Each card shows the humanized relative modification time. Clicking a
- * card opens the shared details drawer; "Abrir ubicacion" links to the folder.
- */
 @Component({
   selector: 'kubo-recent',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, NgIcon, FileIcon, EmptyState, DetailsPane],
-  providers: [provideIcons({ lucideClock, lucideFolderOpen })],
+  imports: [FormsModule, NgIcon, EmptyState],
+  providers: [provideIcons({ lucideClock, lucideFolderOpen, lucideSearch, lucideFilter, lucideChevronLeft, lucideChevronRight, lucideFile, lucideFolder, lucideHistory })],
   templateUrl: './recent.html',
 })
 export class Recent {
-  private readonly ds = inject(DataService);
+  private readonly fileService = inject(FileService);
 
-  /** Up to 30 of the current user's files, newest modification first. */
-  protected readonly files = computed(() => this.ds.recentFiles(30));
+  readonly actionType = signal('');
+  readonly itemName = signal('');
+  readonly startDate = signal('');
+  readonly endDate = signal('');
+  readonly page = signal(0);
 
-  /** Currently selected file for the details drawer. */
-  protected readonly selectedFile = signal<FileItem | null>(null);
-  /** Two-way bound visibility for the details drawer. */
-  protected readonly detailsOpen = signal(false);
+  protected readonly historyQuery = injectQuery(() => ({
+    queryKey: ['history', this.actionType(), this.itemName(), this.startDate(), this.endDate(), this.page()],
+    queryFn: () => lastValueFrom(this.fileService.getHistory({
+      actionType: this.actionType() || undefined,
+      itemName: this.itemName() || undefined,
+      startDate: this.startDate() ? new Date(this.startDate()).toISOString() : undefined,
+      endDate: this.endDate() ? new Date(this.endDate()).toISOString() : undefined,
+      page: this.page(),
+      size: 10
+    }))
+  }));
 
-  /** Pure formatters surfaced for the template. */
-  protected readonly friendlyType = friendlyType;
-  protected readonly formatBytes = formatBytes;
   protected readonly relativeTime = relativeTime;
 
-  protected openDetails(file: FileItem): void {
-    this.selectedFile.set(file);
-    this.detailsOpen.set(true);
+  protected onFilterChange() {
+    this.page.set(0); // Reset page on filter change
   }
 
-  /** RouterLink target for the file's containing folder (root when null). */
-  protected locationLink(file: FileItem): unknown[] {
-    return file.folderId ? ['/archivos', file.folderId] : ['/archivos'];
+  protected nextPage() {
+    if (!this.historyQuery.data()?.last) {
+      this.page.update(p => p + 1);
+    }
+  }
+
+  protected prevPage() {
+    if (!this.historyQuery.data()?.first) {
+      this.page.update(p => Math.max(0, p - 1));
+    }
   }
 }

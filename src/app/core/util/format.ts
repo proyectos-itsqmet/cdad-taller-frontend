@@ -133,8 +133,8 @@ export function friendlyType(mime: string): string {
  * @example relativeTime(yesterday)    // "ayer"
  * @example relativeTime(threeWeeks)   // "hace 3 semanas"
  */
-export function relativeTime(iso: string): string {
-  const then = new Date(iso).getTime();
+export function relativeTime(iso: string | Date): string {
+  const then = typeof iso === 'string' ? new Date(iso).getTime() : iso.getTime();
   if (Number.isNaN(then)) return '';
 
   let diff = Date.now() - then;

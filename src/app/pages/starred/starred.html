@@ -1,84 +1,78 @@
 <div class="p-4 sm:p-6 lg:p-8 space-y-6">
   <header class="flex items-start gap-3">
-    <span
-      class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-500"
-    >
+    <span class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-500">
       <ng-icon name="lucideStar" class="text-xl" aria-hidden="true" />
     </span>
     <div class="min-w-0">
       <h1 class="font-heading text-2xl font-bold text-foreground">Destacados</h1>
       <p class="mt-0.5 text-sm text-muted-foreground">
-        {{ files().length }}
-        {{ files().length === 1 ? 'archivo destacado' : 'archivos destacados' }}
+        {{ currentFiles().length + currentFolders().length }}
+        {{ (currentFiles().length + currentFolders().length) === 1 ? 'elemento destacado' : 'elementos destacados' }}
         marcados con una estrella
       </p>
     </div>
   </header>
 
-  @if (files().length === 0) {
+  @if (starredQuery.isPending()) {
+    <div class="flex items-center justify-center py-10">
+      <span class="text-muted-foreground">Cargando...</span>
+    </div>
+  } @else if (currentFolders().length === 0 && currentFiles().length === 0) {
     <kubo-empty-state
       icon="lucideStar"
       title="Sin destacados"
-      message="Marca archivos con una estrella para encontrarlos rapido aca."
+      message="Marca archivos y carpetas con una estrella para encontrarlos rápido acá."
       actionLabel="Ir a mis archivos"
       actionLink="/archivos"
     />
   } @else {
-    <ul
-      role="list"
-      class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-    >
-      @for (file of files(); track file.id) {
-        <li
-          class="flex flex-col rounded-xl border border-border bg-surface p-4 transition-colors hover:border-brand/40"
-        >
-          <button
-            type="button"
-            (click)="openDetails(file)"
-            [attr.aria-label]="'Ver detalles de ' + file.originalName"
-            class="flex w-full items-start gap-3 rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <kubo-file-icon [mime]="file.mimeType" size="2rem" />
-            <span class="min-w-0 flex-1">
-              <span class="block truncate font-medium text-foreground">
-                {{ file.originalName }}
-              </span>
-              <span class="mt-0.5 block text-xs text-muted-foreground">
-                {{ friendlyType(file.mimeType) }} ·
-                {{ formatBytes(file.size) }}
-              </span>
-            </span>
-            <ng-icon
-              name="lucideStar"
-              class="shrink-0 text-lg text-amber-500"
-              role="img"
-              aria-label="Destacado"
-            />
-          </button>
+    @if (currentFolders().length > 0) {
+      <section>
+        <h2 class="mb-3 text-sm font-semibold text-muted-foreground">Carpetas</h2>
+        <ul role="list" class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          @for (folder of currentFolders(); track folder.id) {
+            <li>
+              <div class="group relative flex items-center justify-between gap-3 rounded-xl border border-border bg-surface p-3 transition-colors hover:border-brand/40 hover:bg-surface-muted">
+                <a [routerLink]="['/archivos', folder.id]" class="flex min-w-0 flex-1 items-center gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg">
+                  <ng-icon name="lucideFolder" class="text-2xl text-muted-foreground transition-colors group-hover:text-brand" aria-hidden="true" />
+                  <span class="truncate text-sm font-medium text-foreground">{{ folder.name }}</span>
+                </a>
+                <ng-icon name="lucideStar" class="shrink-0 text-lg text-amber-500" aria-label="Destacado" />
+              </div>
+            </li>
+          }
+        </ul>
+      </section>
+    }
 
-          <div
-            class="mt-4 flex items-center justify-between gap-2 border-t border-border pt-3"
-          >
-            <span class="truncate text-xs text-muted-foreground">
-              Modificado {{ relativeTime(file.modifiedAt) }}
-            </span>
-            <a
-              [routerLink]="locationLink(file)"
-              [attr.aria-label]="'Abrir ubicacion de ' + file.originalName"
-              class="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-lg px-3 text-xs font-medium text-brand transition-colors hover:bg-brand/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <ng-icon
-                name="lucideFolderOpen"
-                class="text-base"
-                aria-hidden="true"
-              />
-              Abrir
-            </a>
-          </div>
-        </li>
-      }
-    </ul>
+    @if (currentFiles().length > 0) {
+      <section [class.mt-6]="currentFolders().length > 0">
+        <h2 class="mb-3 text-sm font-semibold text-muted-foreground">Archivos</h2>
+        <ul role="list" class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          @for (file of currentFiles(); track file.id) {
+            <li class="flex flex-col rounded-xl border border-border bg-surface p-4 transition-colors hover:border-brand/40">
+              <button type="button" (click)="openDetails(file)" [attr.aria-label]="'Ver detalles de ' + file.originalName" class="flex w-full items-start gap-3 rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <kubo-file-icon [mime]="file.mimeType" size="2rem" />
+                <span class="min-w-0 flex-1">
+                  <span class="block truncate font-medium text-foreground">{{ file.originalName }}</span>
+                  <span class="mt-0.5 block text-xs text-muted-foreground">{{ friendlyType(file.mimeType) }} · {{ formatBytes(file.sizeBytes) }}</span>
+                </span>
+                <ng-icon name="lucideStar" class="shrink-0 text-lg text-amber-500" aria-label="Destacado" />
+              </button>
+
+              <div class="mt-4 flex items-center justify-between gap-2 border-t border-border pt-3">
+                <span class="truncate text-xs text-muted-foreground">Modificado {{ relativeTime(file.createdAt) }}</span>
+                <a [routerLink]="file.folderId ? ['/archivos', file.folderId] : ['/archivos']" [attr.aria-label]="'Abrir ubicacion de ' + file.originalName" class="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-lg px-3 text-xs font-medium text-brand transition-colors hover:bg-brand/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  <ng-icon name="lucideFolderOpen" class="text-base" aria-hidden="true" />
+                  Abrir
+                </a>
+              </div>
+            </li>
+          }
+        </ul>
+      </section>
+    }
   }
 
-  <kubo-details-pane [file]="selectedFile()" [(open)]="detailsOpen" />
+  <kubo-details-pane [file]="selectedFile()" [(open)]="detailsOpen" [showDeleteButton]="false" />
 </div>

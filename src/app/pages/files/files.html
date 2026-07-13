@@ -188,12 +188,12 @@
                     <td class="hidden px-3 py-2 text-muted-foreground sm:table-cell" [title]="absoluteDate(folder.createdAt)">
                       {{ relativeTime(folder.createdAt) }}
                     </td>
-                    <td class="px-3 py-2 text-right text-muted-foreground">{{ folderCount(folder.id) || '—' }}</td>
+                    <td class="px-3 py-2 text-right text-muted-foreground">{{ folderCount(folder) || '—' }}</td>
                     <td class="hidden px-3 py-2 text-muted-foreground md:table-cell">Carpeta</td>
                     <td class="hidden px-3 py-2 text-center text-muted-foreground md:table-cell">—</td>
                     <td class="px-2 py-2">
                       <div class="flex items-center justify-end gap-0.5">
-                        <kubo-folder-menu [folder]="folder" (delete)="promptDeleteFolder(folder)" (rename)="promptRenameFolder(folder)" />
+                        <kubo-folder-menu [folder]="folder" (share)="promptShareFolder(folder)" (delete)="promptDeleteFolder(folder)" (rename)="promptRenameFolder(folder)" />
                       </div>
                     </td>
                   </tr>
@@ -280,10 +280,10 @@
                           <kubo-file-icon kind="folder" size="1.5rem" />
                           <span class="min-w-0 flex-1">
                             <span class="block truncate text-sm font-medium text-foreground">{{ folder.name }}</span>
-                            <span class="block text-xs text-muted-foreground">{{ folderCountLabel(folder.id) }}</span>
+                            <span class="block text-xs text-muted-foreground">{{ folderCountLabel(folder) }}</span>
                           </span>
                         </a>
-                        <kubo-folder-menu [folder]="folder" (delete)="promptDeleteFolder(folder)" (rename)="promptRenameFolder(folder)" />
+                        <kubo-folder-menu [folder]="folder" (share)="promptShareFolder(folder)" (delete)="promptDeleteFolder(folder)" (rename)="promptRenameFolder(folder)" />
                       </div>
                     </li>
                   }
@@ -345,7 +345,7 @@
                     <li>
                       <div class="group relative flex flex-col rounded-xl border border-border bg-surface transition-colors hover:border-brand/40 hover:bg-surface-muted">
                         <div class="absolute right-1.5 top-1.5 z-10 flex items-center gap-0.5">
-                          <kubo-folder-menu [folder]="folder" (delete)="promptDeleteFolder(folder)" (rename)="promptRenameFolder(folder)" />
+                          <kubo-folder-menu [folder]="folder" (share)="promptShareFolder(folder)" (delete)="promptDeleteFolder(folder)" (rename)="promptRenameFolder(folder)" />
                         </div>
                         <a
                           [routerLink]="['/archivos', folder.id]"
@@ -355,7 +355,7 @@
                           <kubo-file-icon kind="folder" size="2.5rem" />
                           <span class="w-full min-w-0">
                             <span class="block truncate text-sm font-medium text-foreground">{{ folder.name }}</span>
-                            <span class="mt-0.5 block text-xs text-muted-foreground">{{ folderCountLabel(folder.id) }}</span>
+                            <span class="mt-0.5 block text-xs text-muted-foreground">{{ folderCountLabel(folder) }}</span>
                           </span>
                         </a>
                       </div>
@@ -422,16 +422,44 @@
 
 <!-- Shared overlays: rendered once near the page root -->
 <kubo-details-pane [file]="selected()" [(open)]="detailsOpen" (download)="downloadSelected()" (delete)="promptDeleteSelected()" />
-<kubo-share-dialog [file]="selected()" [(open)]="shareOpen" />
+<kubo-share-dialog [itemName]="shareItem()?.name || ''" [(open)]="shareOpen" [isSubmitting]="isSharing()" [error]="shareError()" (confirm)="confirmShare($event.email)" />
 <kubo-folder-dialog [(open)]="folderDialogOpen" (confirm)="onFolderCreated($event)" />
 <kubo-upload-dialog [(open)]="uploadDialogOpen" (confirm)="onFileUploaded($event)" />
 <kubo-confirm-dialog [(open)]="deleteConfirmOpen" [loading]="isDeleting()" [title]="deleteConfirmTitle" [message]="deleteConfirmMessage" confirmText="Eliminar" (confirm)="confirmDelete()" />
 <kubo-rename-dialog [(open)]="renameDialogOpen" [loading]="isRenaming()" [initialName]="renameConfirmInitialName" (confirm)="confirmRename($event)" />
 
+@if (successModalOpen()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-in fade-in">
+    <div class="w-full max-w-sm rounded-2xl bg-surface p-6 shadow-xl ring-1 ring-border animate-in zoom-in-95" role="dialog" aria-modal="true" aria-labelledby="success-title">
+      <div class="flex flex-col items-center gap-4 text-center">
+        <div class="flex size-12 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
+          <ng-icon name="lucideCheckCircle2" class="text-2xl" aria-hidden="true" />
+        </div>
+        <div>
+          <h3 id="success-title" class="font-heading text-lg font-semibold text-foreground">¡Éxito!</h3>
+          <p class="mt-1 text-sm text-muted-foreground">{{ successMessage() }}</p>
+        </div>
+        <button 
+          type="button" 
+          (click)="successModalOpen.set(false)" 
+          class="mt-2 w-full rounded-lg bg-brand px-4 py-2 font-medium text-brand-fg transition-colors hover:bg-brand/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface">
+          Aceptar
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
 @if (uploadStatus() !== 'idle') {
   <div class="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 shadow-xl animate-in slide-in-from-bottom-8 fade-in">
     @if (uploadStatus() === 'uploading') {
-      <ng-icon name="lucideLoader2" class="animate-spin text-2xl text-brand" aria-hidden="true"></ng-icon>
+      <div class="relative flex size-8 items-center justify-center">
+        <svg class="size-8 -rotate-90" viewBox="0 0 36 36">
+          <path class="text-surface-muted" stroke-width="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+          <path class="text-brand transition-all duration-300" stroke-width="3" [attr.stroke-dasharray]="uploadProgress() + ', 100'" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+        </svg>
+        <span class="absolute text-[9px] font-medium text-foreground">{{ uploadProgress() }}%</span>
+      </div>
       <div class="flex flex-col">
         <span class="text-sm font-semibold text-foreground">Subiendo elemento...</span>
         <span class="text-xs text-muted-foreground">{{ uploadFileName() }}</span>
@@ -455,7 +483,13 @@
 @if (downloadStatus() !== 'idle') {
   <div class="fixed bottom-24 right-6 z-50 flex items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 shadow-xl animate-in slide-in-from-bottom-8 fade-in">
     @if (downloadStatus() === 'downloading') {
-      <ng-icon name="lucideLoader2" class="animate-spin text-2xl text-brand" aria-hidden="true"></ng-icon>
+      <div class="relative flex size-8 items-center justify-center">
+        <svg class="size-8 -rotate-90" viewBox="0 0 36 36">
+          <path class="text-surface-muted" stroke-width="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+          <path class="text-brand transition-all duration-300" stroke-width="3" [attr.stroke-dasharray]="downloadProgress() + ', 100'" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+        </svg>
+        <span class="absolute text-[9px] font-medium text-foreground">{{ downloadProgress() }}%</span>
+      </div>
       <div class="flex flex-col">
         <span class="text-sm font-semibold text-foreground">Descargando archivo...</span>
         <span class="text-xs text-muted-foreground">{{ downloadFileName() }}</span>

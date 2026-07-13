@@ -25,6 +25,7 @@
     "@ng-icons/core": "^33.4.0",
     "@ng-icons/heroicons": "^33.4.0",
     "@ng-icons/lucide": "^33.4.0",
+    "@tanstack/angular-query-experimental": "^5.101.2",
     "express": "^5.1.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"

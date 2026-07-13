@@ -13,6 +13,7 @@ import {
   lucidePencil,
   lucideShare2,
   lucideTrash2,
+  lucideUserMinus,
 } from '@ng-icons/lucide';
 import { FileItem } from '../../core/models/models';
 
@@ -38,6 +39,7 @@ const MOCK_TOOLTIP = 'Disponible en la versión completa';
       lucideDownload,
       lucidePencil,
       lucideTrash2,
+      lucideUserMinus,
     }),
   ],
   host: {

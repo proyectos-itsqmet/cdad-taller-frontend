@@ -1,8 +1,10 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideHardDrive } from '@ng-icons/lucide';
-import { DataService } from '../../../core/data/data.service';
+import { injectQuery } from '@tanstack/angular-query-experimental';
+import { lastValueFrom } from 'rxjs';
 import { formatBytes } from '../../../core/util/format';
+import { FileService } from '../../../core/files/file.service';
 
 /**
  * kubo-storage-meter — calm storage usage indicator.
@@ -39,12 +41,17 @@ import { formatBytes } from '../../../core/util/format';
   `,
 })
 export class StorageMeter {
-  private readonly data = inject(DataService);
+  private readonly fileService = inject(FileService);
+  private readonly maxBytes = 15 * 1024 * 1024 * 1024; // 15 GB
+
+  protected readonly statsQuery = injectQuery(() => ({
+    queryKey: ['stats'],
+    queryFn: () => lastValueFrom(this.fileService.getStats())
+  }));
 
   protected readonly percent = computed(() => {
-    const quota = this.data.storageQuotaBytes();
-    if (quota <= 0) return 0;
-    return Math.min(100, (this.data.storageUsedBytes() / quota) * 100);
+    const used = this.statsQuery.data()?.usedBytes || 0;
+    return Math.min(100, (used / this.maxBytes) * 100);
   });
 
   protected readonly percentRounded = computed(() => Math.round(this.percent()));
@@ -56,7 +63,8 @@ export class StorageMeter {
     return 'bg-brand';
   });
 
-  protected readonly label = computed(
-    () => `${formatBytes(this.data.storageUsedBytes())} de ${formatBytes(this.data.storageQuotaBytes())} usados`,
-  );
+  protected readonly label = computed(() => {
+    const used = this.statsQuery.data()?.usedBytes || 0;
+    return `${formatBytes(used)} de ${formatBytes(this.maxBytes)} usados`;
+  });
 }

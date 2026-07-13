@@ -2,6 +2,8 @@ import { ChangeDetectionStrategy, Component, computed, inject, HostListener, sig
 import { JsonPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
+import { injectQuery, injectQueryClient } from '@tanstack/angular-query-experimental';
+import { lastValueFrom } from 'rxjs';
 import {
   lucideArrowRight,
   lucideChevronRight,
@@ -18,41 +20,17 @@ import {
   lucideLoader2,
   lucideCheckCircle2,
   lucideX,
+  lucideInbox
 } from '@ng-icons/lucide';
 
-import { DataService } from '../../core/data/data.service';
 import { AuthService } from '../../core/auth/auth.service';
+import { FileService } from '../../core/files/file.service';
 import { relativeTime } from '../../core/util/format';
-import { ActivityEvent } from '../../core/models/models';
 import { StorageMeter } from '../../shared/ui/storage-meter/storage-meter';
 import { FileIcon } from '../../shared/ui/file-icon/file-icon';
 import { EmptyState } from '../../shared/ui/empty-state/empty-state';
 import { UploadDialog } from '../../shared/ui/upload-dialog/upload-dialog';
-import { FileService } from '../../core/files/file.service';
-import { FileItem } from '../../core/models/models';
 
-/** Icon + tint per activity kind (dynamic names must all be registered). */
-const ACTIVITY_ICON: Record<ActivityEvent['kind'], string> = {
-  shared: 'lucideShare2',
-  modified: 'lucidePencil',
-  created: 'lucidePlus',
-};
-const ACTIVITY_TINT: Record<ActivityEvent['kind'], string> = {
-  shared: 'bg-brand/10 text-brand',
-  modified: 'bg-blue-500/10 text-blue-500',
-  created: 'bg-success/10 text-success',
-};
-const ACTIVITY_VERB: Record<ActivityEvent['kind'], string> = {
-  shared: 'compartió',
-  modified: 'modificó',
-  created: 'creó',
-};
-
-/**
- * Home — the KuboDrive dashboard/control panel at /home. Renders INSIDE the
- * AppShell outlet (content only). Greeting, quick stats, folder shortcuts,
- * a recent-files preview and a compact activity timeline. Fully read-only.
- */
 @Component({
   selector: 'kubo-home',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -74,89 +52,121 @@ const ACTIVITY_VERB: Record<ActivityEvent['kind'], string> = {
       lucideLoader2,
       lucideCheckCircle2,
       lucideX,
+      lucideInbox
     }),
   ],
   templateUrl: './home.html',
 })
 export class Home {
-  private readonly data = inject(DataService);
   private readonly auth = inject(AuthService);
   private readonly fileService = inject(FileService);
+  private readonly queryClient = injectQueryClient();
 
   protected readonly uploadDialogOpen = signal(false);
   readonly uploadStatus = signal<'idle' | 'uploading' | 'success' | 'error'>('idle');
   protected readonly uploadFileName = signal('');
+  protected readonly uploadProgress = signal(0);
 
-  protected readonly currentUser = this.data.currentUser;
   protected readonly loginResponse = this.auth.currentUser;
 
-  /** First token of the current user's name for the greeting. */
   protected readonly firstName = computed(
-    () => this.loginResponse()?.firstName || this.data.currentUser().name.split(' ')[0],
+    () => this.loginResponse()?.firstName || 'Usuario',
   );
 
-  /** The three headline metrics, each linking to its section. */
+  protected readonly filesQuery = injectQuery(() => ({
+    queryKey: ['home-files'],
+    queryFn: () => lastValueFrom(this.fileService.getFiles(null))
+  }));
+
+  protected readonly historyQuery = injectQuery(() => ({
+    queryKey: ['home-history'],
+    queryFn: () => lastValueFrom(this.fileService.getHistory({ size: 5 }))
+  }));
+
+  protected readonly statsQuery = injectQuery(() => ({
+    queryKey: ['stats'],
+    queryFn: () => lastValueFrom(this.fileService.getStats())
+  }));
+
   protected readonly stats = computed(() => [
     {
       label: 'Archivos totales',
-      value: this.data.files().length,
+      value: this.statsQuery.data()?.totalFiles || 0,
       icon: 'lucideFile',
       link: '/archivos',
       hint: 'En tu unidad',
     },
     {
       label: 'Compartidos conmigo',
-      value: this.data.sharedWithMe().length,
+      value: this.statsQuery.data()?.sharedFiles || 0,
       icon: 'lucideShare2',
       link: '/compartidos',
       hint: 'De otras personas',
     },
     {
       label: 'Destacados',
-      value: this.data.starredFiles().length,
+      value: this.statsQuery.data()?.starredItems || 0,
       icon: 'lucideStar',
       link: '/destacados',
       hint: 'Marcados con estrella',
     },
   ]);
 
-  /** Root folders with a friendly item-count label. */
   protected readonly rootFolders = computed(() =>
-    this.data.childFolders(null).map((folder) => {
-      const count =
-        this.data.childFolders(folder.id).length +
-        this.data.filesInFolder(folder.id).length;
+    (this.filesQuery.data()?.folders || []).slice(0, 3).map((folder) => {
+      const n = folder.itemsCount || 0;
       return {
         folder,
-        countLabel: count === 1 ? '1 elemento' : `${count} elementos`,
+        countLabel: n === 1 ? '1 elemento' : `${n} elementos`,
       };
     }),
   );
 
-  /** Eight most-recent files with a precomputed relative timestamp. */
-  protected readonly recent = computed(() =>
-    this.data.recentFiles(8).map((file) => ({
-      file,
-      time: relativeTime(file.modifiedAt),
-    })),
-  );
+  protected readonly recent = computed(() => {
+    const files = this.filesQuery.data()?.files || [];
+    return files
+      .slice()
+      .sort((a, b) => new Date(b.createdAt as any).getTime() - new Date(a.createdAt as any).getTime())
+      .slice(0, 5)
+      .map((file) => ({
+        file,
+        time: relativeTime(file.createdAt as any),
+      }));
+  });
 
-  /** First five activity events, resolved to a display-ready view model. */
   protected readonly activity = computed(() => {
-    const fileMap = new Map(this.data.files().map((f) => [f.id, f]));
-    return this.data.activityFeed().slice(0, 5).map((ev) => {
-      const actor = this.data.userById(ev.actorUserId);
-      const file = ev.fileId ? fileMap.get(ev.fileId) : undefined;
+    const history = this.historyQuery.data()?.content || [];
+    return history.map((ev) => {
+      let icon = 'lucidePlus';
+      let badgeClass = 'bg-success/10 text-success';
+      let verb = 'realizó';
+
+      if (ev.actionType === 'UPLOAD' || ev.actionType === 'CREATE') {
+        icon = 'lucidePlus';
+        badgeClass = 'bg-success/10 text-success';
+        verb = ev.actionType === 'UPLOAD' ? 'subió' : 'creó';
+      } else if (ev.actionType === 'SHARE') {
+        icon = 'lucideShare2';
+        badgeClass = 'bg-brand/10 text-brand';
+        verb = 'compartió';
+      } else if (ev.actionType === 'RENAME') {
+        icon = 'lucidePencil';
+        badgeClass = 'bg-blue-500/10 text-blue-500';
+        verb = 'renombró';
+      } else if (ev.actionType === 'DELETE' || ev.actionType === 'UNSHARE') {
+        icon = 'lucideX';
+        badgeClass = 'bg-red-500/10 text-red-500';
+        verb = ev.actionType === 'DELETE' ? 'eliminó' : 'dejó de compartir';
+      }
+
       return {
         id: ev.id,
-        icon: ACTIVITY_ICON[ev.kind],
-        badgeClass:
-          'flex size-9 shrink-0 items-center justify-center rounded-lg ' +
-          ACTIVITY_TINT[ev.kind],
-        actorName: actor?.name ?? 'Alguien',
-        verb: ACTIVITY_VERB[ev.kind],
-        fileName: file?.originalName ?? 'un archivo',
-        time: relativeTime(ev.at),
+        icon,
+        badgeClass: 'flex size-9 shrink-0 items-center justify-center rounded-lg ' + badgeClass,
+        actorName: 'Tú',
+        verb,
+        fileName: ev.itemName,
+        time: relativeTime(ev.timestamp),
       };
     });
   });
@@ -174,33 +184,40 @@ export class Home {
   }
 
   protected onFileUploaded(event: { file: File; starred: boolean }): void {
-    const parentId = null; // En Inicio, siempre va a la raíz
+    const parentId = null;
     
     this.uploadFileName.set(event.file.name);
     this.uploadStatus.set('uploading');
+    this.uploadProgress.set(0);
     
+    const progressInterval = setInterval(() => {
+      if (this.uploadProgress() < 90) {
+        this.uploadProgress.update(p => Math.min(90, p + Math.floor(Math.random() * 15) + 5));
+      }
+    }, 250);
+
     this.fileService.uploadFile(event.file, parentId, event.starred).subscribe({
-      next: (fileId) => {
-        this.uploadStatus.set('success');
-        setTimeout(() => {
-          if (this.uploadStatus() === 'success') this.uploadStatus.set('idle');
-        }, 3000);
-        
-        const newFile: FileItem = {
-          id: fileId,
-          folderId: parentId,
-          userId: '', 
-          originalName: event.file.name,
-          minioObjectId: '',
-          size: event.file.size,
-          mimeType: event.file.type || 'application/octet-stream',
-          createdAt: new Date().toISOString(),
-          modifiedAt: new Date().toISOString(),
-          starred: event.starred
-        };
-        this.data.addFile(newFile);
+      next: (res) => {
+        if (res.type === 'progress') {
+          if (res.percent > this.uploadProgress() || res.percent === 100) {
+            this.uploadProgress.set(res.percent);
+          }
+        } else {
+          clearInterval(progressInterval);
+          this.uploadProgress.set(100);
+          this.uploadStatus.set('success');
+          setTimeout(() => {
+            if (this.uploadStatus() === 'success') this.uploadStatus.set('idle');
+          }, 3000);
+          
+          // Invalidate queries to refresh the lists
+          this.queryClient.invalidateQueries({ queryKey: ['home-files'] });
+          this.queryClient.invalidateQueries({ queryKey: ['home-history'] });
+          this.queryClient.invalidateQueries({ queryKey: ['stats'] });
+        }
       },
       error: () => {
+        clearInterval(progressInterval);
         this.uploadStatus.set('error');
         setTimeout(() => {
           if (this.uploadStatus() === 'error') this.uploadStatus.set('idle');

@@ -1,91 +1,191 @@
 <div class="p-4 sm:p-6 lg:p-8 space-y-6">
-  <header class="flex items-start gap-3">
-    <span
-      class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand/10 text-brand"
-    >
-      <ng-icon name="lucideShare2" class="text-xl" aria-hidden="true" />
-    </span>
-    <div class="min-w-0">
-      <h1 class="font-heading text-2xl font-bold text-foreground">
+  <header class="flex flex-col gap-4">
+    <div class="flex items-start gap-3">
+      <span class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand/10 text-brand">
+        <ng-icon name="lucideShare2" class="text-xl" aria-hidden="true" />
+      </span>
+      <div class="min-w-0">
+        <h1 class="font-heading text-2xl font-bold text-foreground">Archivos compartidos</h1>
+        <p class="mt-0.5 text-sm text-muted-foreground">Gestiona los archivos que compartiste o compartieron contigo</p>
+      </div>
+    </div>
+    
+    <div class="flex gap-2 border-b border-border">
+      <a 
+        routerLink="/compartidos/conmigo" 
+        [class.border-brand]="view() === 'with-me'"
+        [class.text-foreground]="view() === 'with-me'"
+        [class.border-transparent]="view() !== 'with-me'"
+        [class.text-muted-foreground]="view() !== 'with-me'"
+        class="border-b-2 px-4 py-2 text-sm font-medium transition-colors hover:text-foreground focus-visible:outline-none">
         Compartido conmigo
-      </h1>
-      <p class="mt-0.5 text-sm text-muted-foreground">
-        {{ rows().length }}
-        {{ rows().length === 1 ? 'archivo' : 'archivos' }} que otras personas
-        compartieron con vos
-      </p>
+      </a>
+      <a 
+        routerLink="/compartidos/por-mi"
+        [class.border-brand]="view() === 'by-me'"
+        [class.text-foreground]="view() === 'by-me'"
+        [class.border-transparent]="view() !== 'by-me'"
+        [class.text-muted-foreground]="view() !== 'by-me'"
+        class="border-b-2 px-4 py-2 text-sm font-medium transition-colors hover:text-foreground focus-visible:outline-none">
+        Compartido por mí
+      </a>
     </div>
   </header>
 
-  @if (rows().length === 0) {
+  @if (sharedWithMeQuery.isPending() || sharedByMeQuery.isPending()) {
+    <div class="flex items-center justify-center py-10">
+      <span class="text-muted-foreground">Cargando...</span>
+    </div>
+  } @else if (currentFolders().length === 0 && currentFiles().length === 0) {
     <kubo-empty-state
       icon="lucideShare2"
-      title="Nada compartido contigo"
-      message="Cuando alguien comparta un archivo con vos, va a aparecer aca."
+      title="Nada por aquí"
+      message="No hay elementos compartidos en esta sección."
       actionLabel="Ir a mis archivos"
       actionLink="/archivos"
     />
   } @else {
-    <ul
-      role="list"
-      class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-    >
-      @for (row of rows(); track row.share.id) {
-        <li
-          class="flex flex-col rounded-xl border border-border bg-surface p-4 transition-colors hover:border-brand/40"
-        >
-          <button
-            type="button"
-            (click)="openDetails(row.file)"
-            [attr.aria-label]="'Ver detalles de ' + row.file.originalName"
-            class="flex w-full items-start gap-3 rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <kubo-file-icon [mime]="row.file.mimeType" size="2rem" />
-            <span class="min-w-0 flex-1">
-              <span class="block truncate font-medium text-foreground">
-                {{ row.file.originalName }}
-              </span>
-              <span class="mt-0.5 block text-xs text-muted-foreground">
-                {{ friendlyType(row.file.mimeType) }} ·
-                {{ formatBytes(row.file.size) }}
-              </span>
-            </span>
-          </button>
+    @if (currentFolders().length > 0) {
+      <section>
+        <h2 class="mb-3 text-sm font-semibold text-muted-foreground">Carpetas</h2>
+        <ul role="list" class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          @for (folder of currentFolders(); track folder.id) {
+            <li>
+              <div class="group relative flex items-center justify-between gap-3 rounded-xl border border-border bg-surface p-3 transition-colors hover:border-brand/40 hover:bg-surface-muted">
+                <a [routerLink]="['/archivos', folder.id]" class="flex min-w-0 flex-1 items-center gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg">
+                  <ng-icon name="lucideFolder" class="text-2xl text-muted-foreground transition-colors group-hover:text-brand" aria-hidden="true" />
+                  <span class="truncate text-sm font-medium text-foreground">{{ folder.name }}</span>
+                </a>
+                @if (view() === 'by-me') {
+                  <button type="button" (click)="promptRevokeFolder(folder)" class="flex size-8 shrink-0 items-center justify-center rounded-lg text-destructive transition-colors hover:bg-destructive/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" title="Revocar acceso">
+                    <ng-icon name="lucideUserMinus" class="text-lg" aria-hidden="true" />
+                  </button>
+                }
+              </div>
+            </li>
+          }
+        </ul>
+      </section>
+    }
 
-          <div class="mt-4 flex items-center gap-2">
-            <kubo-user-avatar [user]="row.owner" [size]="28" />
-            <span
-              class="min-w-0 flex-1 truncate text-xs text-muted-foreground"
-            >
-              Compartido por {{ row.owner.name }}
-            </span>
-            <span [class]="permBadgeClass(row.share.permissions)">
-              {{ permLabel(row.share.permissions) }}
-            </span>
-          </div>
+    @if (currentFiles().length > 0) {
+      <section class="mt-6">
+        <h2 class="mb-3 text-sm font-semibold text-muted-foreground">Archivos</h2>
+        <ul role="list" class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          @for (file of currentFiles(); track file.id) {
+            <li class="flex flex-col rounded-xl border border-border bg-surface p-4 transition-colors hover:border-brand/40">
+              <button type="button" (click)="openDetails(file)" class="flex w-full items-start gap-3 rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <kubo-file-icon [mime]="file.mimeType" size="2rem" />
+                <span class="min-w-0 flex-1">
+                  <span class="block truncate font-medium text-foreground">{{ file.originalName }}</span>
+                  <span class="mt-0.5 block text-xs text-muted-foreground">{{ friendlyType(file.mimeType) }} · {{ formatBytes(file.sizeBytes) }}</span>
+                </span>
+              </button>
 
-          <div
-            class="mt-4 flex items-center justify-between gap-2 border-t border-border pt-3"
-          >
-            <span class="truncate text-xs text-muted-foreground">
-              {{ relativeTime(row.share.sharedAt) }}
-            </span>
-            <a
-              [routerLink]="locationLink(row.file)"
-              class="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-lg px-3 text-xs font-medium text-brand transition-colors hover:bg-brand/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <ng-icon
-                name="lucideFolderOpen"
-                class="text-base"
-                aria-hidden="true"
-              />
-              Abrir ubicacion
-            </a>
-          </div>
-        </li>
-      }
-    </ul>
+              <div class="mt-4 flex items-center gap-2">
+                @if (view() === 'with-me') {
+                  <span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-brand/10 text-xs font-bold text-brand">
+                    {{ getAvatarInitials(file.sharedByFirstName, file.sharedByLastName) }}
+                  </span>
+                  <span class="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+                    Compartido por {{ file.sharedByFirstName || 'Usuario' }} {{ file.sharedByLastName || '' }}
+                  </span>
+                } @else {
+                  <span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-brand/10 text-xs font-bold text-brand">
+                    {{ getAvatarInitials(file.sharedWithFirstName, file.sharedWithLastName) }}
+                  </span>
+                  <span class="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+                    Compartido con {{ file.sharedWithFirstName || file.sharedWithEmail || 'Usuario' }} {{ file.sharedWithLastName || '' }}
+                  </span>
+                }
+              </div>
+
+              <div class="mt-4 flex items-center justify-between gap-2 border-t border-border pt-3">
+                <span class="truncate text-xs text-muted-foreground">{{ relativeTime(file.createdAt) }}</span>
+                <div class="flex items-center gap-1">
+                  @if (view() === 'by-me') {
+                    <button type="button" (click)="promptRevokeFile(file)" class="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-destructive transition-colors hover:bg-destructive/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                      <ng-icon name="lucideUserMinus" class="text-base" aria-hidden="true" />
+                      Revocar
+                    </button>
+                    <a [routerLink]="file.folderId ? ['/archivos', file.folderId] : ['/archivos']" class="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-brand transition-colors hover:bg-brand/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                      <ng-icon name="lucideFolderOpen" class="text-base" aria-hidden="true" />
+                      Ubicación
+                    </a>
+                  } @else {
+                    <button type="button" (click)="downloadFile(file)" class="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-brand transition-colors hover:bg-brand/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                      <ng-icon name="lucideDownload" class="text-base" aria-hidden="true" />
+                      Descargar
+                    </button>
+                  }
+                </div>
+              </div>
+            </li>
+          }
+        </ul>
+      </section>
+    }
   }
 
-  <kubo-details-pane [file]="selectedFile()" [(open)]="detailsOpen" />
+  <kubo-details-pane 
+    [file]="selectedFile()" 
+    [(open)]="detailsOpen" 
+    [showDeleteButton]="false"
+    [showRevokeButton]="view() === 'by-me'"
+    (download)="downloadSelected()"
+    (revoke)="promptRevokeFile(selectedFile())"
+  />
+  <kubo-confirm-dialog [(open)]="revokeConfirmOpen" [loading]="isRevoking()" [title]="revokeConfirmTitle" [message]="revokeConfirmMessage()" confirmText="Revocar" (confirm)="confirmRevoke()" />
+  
+  @if (successModalOpen()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-in fade-in">
+      <div class="w-full max-w-sm rounded-2xl bg-surface p-6 shadow-xl ring-1 ring-border animate-in zoom-in-95" role="dialog" aria-modal="true" aria-labelledby="success-title">
+        <div class="flex flex-col items-center gap-4 text-center">
+          <div class="flex size-12 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
+            <ng-icon name="lucideCheckCircle2" class="text-2xl" aria-hidden="true" />
+          </div>
+          <div>
+            <h3 id="success-title" class="font-heading text-lg font-semibold text-foreground">¡Éxito!</h3>
+            <p class="mt-1 text-sm text-muted-foreground">{{ successMessage() }}</p>
+          </div>
+          <button 
+            type="button" 
+            (click)="successModalOpen.set(false)" 
+            class="mt-2 w-full rounded-lg bg-brand px-4 py-2 font-medium text-brand-fg transition-colors hover:bg-brand/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface">
+            Aceptar
+          </button>
+        </div>
+      </div>
+    </div>
+  }
 </div>
+
+@if (downloadStatus() !== 'idle') {
+  <div class="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 shadow-xl animate-in slide-in-from-bottom-8 fade-in">
+    @if (downloadStatus() === 'downloading') {
+      <div class="relative flex size-8 items-center justify-center">
+        <svg class="size-8 -rotate-90" viewBox="0 0 36 36">
+          <path class="text-surface-muted" stroke-width="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+          <path class="text-brand transition-all duration-300" stroke-width="3" [attr.stroke-dasharray]="downloadProgress() + ', 100'" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+        </svg>
+        <span class="absolute text-[9px] font-medium text-foreground">{{ downloadProgress() }}%</span>
+      </div>
+      <div class="flex flex-col">
+        <span class="text-sm font-semibold text-foreground">Descargando archivo...</span>
+        <span class="text-xs text-muted-foreground">{{ downloadFileName() }}</span>
+      </div>
+    } @else if (downloadStatus() === 'success') {
+      <ng-icon name="lucideCheckCircle2" class="text-2xl text-emerald-500" aria-hidden="true"></ng-icon>
+      <div class="flex flex-col">
+        <span class="text-sm font-semibold text-foreground">Descarga completada</span>
+        <span class="text-xs text-muted-foreground">{{ downloadFileName() }}</span>
+      </div>
+    } @else if (downloadStatus() === 'error') {
+      <ng-icon name="lucideX" class="text-2xl text-red-500" aria-hidden="true"></ng-icon>
+      <div class="flex flex-col">
+        <span class="text-sm font-semibold text-foreground">Error al descargar</span>
+        <span class="text-xs text-muted-foreground">{{ downloadFileName() }}</span>
+      </div>
+    }
+  </div>
+}

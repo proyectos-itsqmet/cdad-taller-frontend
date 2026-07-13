@@ -7,50 +7,56 @@ import {
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideFolderOpen, lucideStar } from '@ng-icons/lucide';
+import { lucideFolderOpen, lucideStar, lucideFolder } from '@ng-icons/lucide';
+import { injectQuery } from '@tanstack/angular-query-experimental';
+import { lastValueFrom } from 'rxjs';
 
-import { DataService } from '../../core/data/data.service';
-import { FileItem } from '../../core/models/models';
+import { FileService } from '../../core/files/file.service';
 import { formatBytes, friendlyType, relativeTime } from '../../core/util/format';
 import { FileIcon } from '../../shared/ui/file-icon/file-icon';
 import { EmptyState } from '../../shared/ui/empty-state/empty-state';
 import { DetailsPane } from '../../shared/ui/details-pane/details-pane';
 
-/**
- * "Destacados" — the current user's starred files. Each card carries a star
- * indicator (icon + label, so color is never the only signal). Clicking a card
- * opens the shared details drawer; "Abrir ubicacion" links to the folder.
- */
 @Component({
   selector: 'kubo-starred',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, NgIcon, FileIcon, EmptyState, DetailsPane],
-  providers: [provideIcons({ lucideStar, lucideFolderOpen })],
+  providers: [provideIcons({ lucideStar, lucideFolderOpen, lucideFolder })],
   templateUrl: './starred.html',
 })
 export class Starred {
-  private readonly ds = inject(DataService);
+  private readonly fileService = inject(FileService);
 
-  /** The current user's starred files, newest modification first. */
-  protected readonly files = computed(() => this.ds.starredFiles());
+  protected readonly starredQuery = injectQuery(() => ({
+    queryKey: ['starred-files'],
+    queryFn: () => lastValueFrom(this.fileService.getFiles(null, true)),
+  }));
 
-  /** Currently selected file for the details drawer. */
-  protected readonly selectedFile = signal<FileItem | null>(null);
-  /** Two-way bound visibility for the details drawer. */
+  protected readonly currentFiles = computed(() => this.starredQuery.data()?.files || []);
+  protected readonly currentFolders = computed(() => this.starredQuery.data()?.folders || []);
+
+  protected readonly selectedFile = signal<any>(null);
   protected readonly detailsOpen = signal(false);
 
-  /** Pure formatters surfaced for the template. */
   protected readonly friendlyType = friendlyType;
   protected readonly formatBytes = formatBytes;
   protected readonly relativeTime = relativeTime;
 
-  protected openDetails(file: FileItem): void {
-    this.selectedFile.set(file);
+  protected openDetails(file: any): void {
+    const fileItem = {
+      id: file.id,
+      folderId: file.folderId as string | null,
+      userId: '',
+      originalName: file.originalName,
+      minioObjectId: '',
+      size: file.sizeBytes,
+      mimeType: file.mimeType,
+      createdAt: (file.createdAt as any).toString(),
+      modifiedAt: (file.createdAt as any).toString(),
+      starred: file.starred,
+      sharedAt: file.sharedAt ? file.sharedAt.toString() : undefined,
+    };
+    this.selectedFile.set(fileItem);
     this.detailsOpen.set(true);
-  }
-
-  /** RouterLink target for the file's containing folder (root when null). */
-  protected locationLink(file: FileItem): unknown[] {
-    return file.folderId ? ['/archivos', file.folderId] : ['/archivos'];
   }
 }

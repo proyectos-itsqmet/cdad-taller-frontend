@@ -44,7 +44,8 @@ export class Register {
   private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
 
-  protected readonly name = signal('');
+  protected readonly firstName = signal('');
+  protected readonly lastName = signal('');
   protected readonly email = signal('');
   protected readonly password = signal('');
   protected readonly confirm = signal('');
@@ -57,15 +58,23 @@ export class Register {
 
   /** Flip once the user tries to submit — reveals every pending hint at once. */
   protected readonly submitted = signal(false);
-  protected readonly nameTouched = signal(false);
+  protected readonly firstNameTouched = signal(false);
+  protected readonly lastNameTouched = signal(false);
   protected readonly emailTouched = signal(false);
   protected readonly passwordTouched = signal(false);
   protected readonly confirmTouched = signal(false);
 
-  protected readonly nameError = computed(() => {
-    const value = this.name().trim();
+  protected readonly firstNameError = computed(() => {
+    const value = this.firstName().trim();
     if (!value) return 'Ingresá tu nombre.';
     if (value.length < 2) return 'El nombre es demasiado corto.';
+    return null;
+  });
+
+  protected readonly lastNameError = computed(() => {
+    const value = this.lastName().trim();
+    if (!value) return 'Ingresá tu apellido.';
+    if (value.length < 2) return 'El apellido es demasiado corto.';
     return null;
   });
 
@@ -94,8 +103,11 @@ export class Register {
     this.acceptTerms() ? null : 'Debés aceptar los términos para continuar.',
   );
 
-  protected readonly showNameError = computed(
-    () => (this.nameTouched() || this.submitted()) && this.nameError() !== null,
+  protected readonly showFirstNameError = computed(
+    () => (this.firstNameTouched() || this.submitted()) && this.firstNameError() !== null,
+  );
+  protected readonly showLastNameError = computed(
+    () => (this.lastNameTouched() || this.submitted()) && this.lastNameError() !== null,
   );
   protected readonly showEmailError = computed(
     () => (this.emailTouched() || this.submitted()) && this.emailError() !== null,
@@ -110,8 +122,12 @@ export class Register {
     () => this.submitted() && this.termsError() !== null,
   );
 
-  protected onNameInput(event: Event): void {
-    this.name.set((event.target as HTMLInputElement).value);
+  protected onFirstNameInput(event: Event): void {
+    this.firstName.set((event.target as HTMLInputElement).value);
+  }
+
+  protected onLastNameInput(event: Event): void {
+    this.lastName.set((event.target as HTMLInputElement).value);
   }
 
   protected onEmailInput(event: Event): void {
@@ -143,7 +159,8 @@ export class Register {
     this.submitted.set(true);
     this.apiError.set(null);
     if (
-      this.nameError() ||
+      this.firstNameError() ||
+      this.lastNameError() ||
       this.emailError() ||
       this.passwordError() ||
       this.confirmError() ||
@@ -153,13 +170,9 @@ export class Register {
     }
     
     this.isLoading.set(true);
-    const nameParts = this.name().trim().split(' ');
-    const firstName = nameParts[0];
-    const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
-
     this.authService.register({
-      firstName,
-      lastName,
+      firstName: this.firstName().trim(),
+      lastName: this.lastName().trim(),
       email: this.email().trim(),
       password: this.password()
     }).subscribe({
