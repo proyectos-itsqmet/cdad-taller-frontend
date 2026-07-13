@@ -25,6 +25,8 @@ import {
 
 import { AuthService } from '../../core/auth/auth.service';
 import { FileService } from '../../core/files/file.service';
+import { TransferService } from '../../core/services/transfer.service';
+import { History, File as FileModel } from '../../model/interfaces';
 import { relativeTime } from '../../core/util/format';
 import { StorageMeter } from '../../shared/ui/storage-meter/storage-meter';
 import { FileIcon } from '../../shared/ui/file-icon/file-icon';
@@ -61,6 +63,7 @@ export class Home {
   private readonly auth = inject(AuthService);
   private readonly fileService = inject(FileService);
   private readonly queryClient = injectQueryClient();
+  private readonly transferService = inject(TransferService);
 
   protected readonly uploadDialogOpen = signal(false);
   readonly uploadStatus = signal<'idle' | 'uploading' | 'success' | 'error'>('idle');
@@ -177,52 +180,16 @@ export class Home {
 
   @HostListener('window:beforeunload', ['$event'])
   protected onBeforeUnload(event: BeforeUnloadEvent): void {
-    if (this.uploadStatus() === 'uploading') {
+    if (this.transferService.activeCount() > 0) {
       event.preventDefault();
-      event.returnValue = 'El archivo no se ha subido, si sales la carga se cancelará.';
+      event.returnValue = 'Hay archivos subiéndose, si sales la carga se cancelará.';
     }
   }
 
-  protected onFileUploaded(event: { file: File; starred: boolean }): void {
+  protected onFileUploaded(event: { files: File[]; starred: boolean }): void {
     const parentId = null;
-    
-    this.uploadFileName.set(event.file.name);
-    this.uploadStatus.set('uploading');
-    this.uploadProgress.set(0);
-    
-    const progressInterval = setInterval(() => {
-      if (this.uploadProgress() < 90) {
-        this.uploadProgress.update(p => Math.min(90, p + Math.floor(Math.random() * 15) + 5));
-      }
-    }, 250);
-
-    this.fileService.uploadFile(event.file, parentId, event.starred).subscribe({
-      next: (res) => {
-        if (res.type === 'progress') {
-          if (res.percent > this.uploadProgress() || res.percent === 100) {
-            this.uploadProgress.set(res.percent);
-          }
-        } else {
-          clearInterval(progressInterval);
-          this.uploadProgress.set(100);
-          this.uploadStatus.set('success');
-          setTimeout(() => {
-            if (this.uploadStatus() === 'success') this.uploadStatus.set('idle');
-          }, 3000);
-          
-          // Invalidate queries to refresh the lists
-          this.queryClient.invalidateQueries({ queryKey: ['home-files'] });
-          this.queryClient.invalidateQueries({ queryKey: ['home-history'] });
-          this.queryClient.invalidateQueries({ queryKey: ['stats'] });
-        }
-      },
-      error: () => {
-        clearInterval(progressInterval);
-        this.uploadStatus.set('error');
-        setTimeout(() => {
-          if (this.uploadStatus() === 'error') this.uploadStatus.set('idle');
-        }, 3000);
-      }
-    });
+    for (const file of event.files) {
+      this.transferService.uploadFile(file, parentId, event.starred);
+    }
   }
 }

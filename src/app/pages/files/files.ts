@@ -43,6 +43,7 @@ import { FolderDialog } from '../../shared/ui/folder-dialog/folder-dialog';
 import { UploadDialog } from '../../shared/ui/upload-dialog/upload-dialog';
 import { FolderService } from '../../core/folders/folder.service';
 import { FileService } from '../../core/files/file.service';
+import { TransferService } from '../../core/services/transfer.service';
 import { FileMenu } from './file-menu';
 import { FolderMenu } from './folder-menu';
 import { ConfirmDialog } from '../../shared/ui/confirm-dialog/confirm-dialog';
@@ -225,16 +226,10 @@ export class Files {
 
   protected readonly successModalOpen = signal(false);
   protected readonly successMessage = signal('');
-
-  readonly uploadStatus = signal<'idle' | 'uploading' | 'success' | 'error'>('idle');
-
-  protected readonly downloadStatus = signal<'idle' | 'downloading' | 'success' | 'error'>('idle');
-  protected readonly downloadFileName = signal('');
-  protected readonly downloadProgress = signal(0);
-  protected readonly uploadFileName = signal('');
-  protected readonly uploadProgress = signal(0);
-
   protected readonly deleteConfirmOpen = signal(false);
+
+  // Upload / Transfer service
+  private readonly transferService = inject(TransferService);
   protected readonly isDeleting = signal(false);
   protected readonly itemToDelete = signal<{ type: 'file' | 'folder'; item: any } | null>(null);
 
@@ -515,55 +510,17 @@ export class Files {
 
   @HostListener('window:beforeunload', ['$event'])
   protected onBeforeUnload(event: BeforeUnloadEvent): void {
-    if (this.uploadStatus() === 'uploading') {
+    if (this.transferService.activeCount() > 0) {
       event.preventDefault();
-      event.returnValue = 'El archivo no se ha subido, si sales la carga se cancelará.';
+      event.returnValue = 'Hay archivos subiéndose, si sales la carga se cancelará.';
     }
   }
 
-  protected onFileUploaded(event: { file: File; starred: boolean }): void {
+  protected onFileUploaded(event: { files: File[]; starred: boolean }): void {
     const parentId = this.folderId();
-
-    this.uploadFileName.set(event.file.name);
-    this.uploadStatus.set('uploading');
-    this.uploadProgress.set(0);
-
-    const progressInterval = setInterval(() => {
-      if (this.uploadProgress() < 90) {
-        this.uploadProgress.update(p => Math.min(90, p + Math.floor(Math.random() * 15) + 5));
-      }
-    }, 250);
-
-    this.fileService.uploadFile(event.file, parentId, event.starred).subscribe({
-      next: (res) => {
-        if (res.type === 'progress') {
-          if (res.percent > this.uploadProgress() || res.percent === 100) {
-            this.uploadProgress.set(res.percent);
-          }
-        } else {
-          clearInterval(progressInterval);
-          this.uploadProgress.set(100);
-          this.uploadStatus.set('success');
-          setTimeout(() => {
-            if (this.uploadStatus() === 'success') this.uploadStatus.set('idle');
-          }, 3000);
-
-          this.invalidateFiles(parentId);
-          this.queryClient.invalidateQueries({ queryKey: ['stats'] });
-
-          if (event.starred) {
-            this.starOverrides.update(m => ({ ...m, [res.fileId]: true }));
-          }
-        }
-      },
-      error: () => {
-        clearInterval(progressInterval);
-        this.uploadStatus.set('error');
-        setTimeout(() => {
-          if (this.uploadStatus() === 'error') this.uploadStatus.set('idle');
-        }, 3000);
-      },
-    });
+    for (const file of event.files) {
+      this.transferService.uploadFile(file, parentId, event.starred);
+    }
   }
 
   protected downloadSelected(): void {
@@ -574,57 +531,7 @@ export class Files {
   }
 
   protected downloadFile(file: FileItem): void {
-    this.downloadFileName.set(file.originalName);
-    this.downloadStatus.set('downloading');
-    this.downloadProgress.set(0);
-
-    const progressInterval = setInterval(() => {
-      if (this.downloadProgress() < 90) {
-        this.downloadProgress.update(p => Math.min(90, p + Math.floor(Math.random() * 15) + 5));
-      }
-    }, 250);
-
-    this.fileService.getDownloadUrl(file.id).subscribe({
-      next: (res) => {
-        this.fileService.downloadFromUrl(res.downloadUrl).subscribe({
-          next: (dlRes) => {
-            if (dlRes.type === 'progress') {
-              if (dlRes.percent > this.downloadProgress() || dlRes.percent === 100) {
-                this.downloadProgress.set(dlRes.percent);
-              }
-            } else {
-              clearInterval(progressInterval);
-              this.downloadProgress.set(100);
-              const url = window.URL.createObjectURL(dlRes.blob);
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = file.originalName;
-              a.click();
-              window.URL.revokeObjectURL(url);
-
-              this.downloadStatus.set('success');
-              setTimeout(() => {
-                if (this.downloadStatus() === 'success') this.downloadStatus.set('idle');
-              }, 3000);
-            }
-          },
-          error: () => {
-            clearInterval(progressInterval);
-            this.downloadStatus.set('error');
-            setTimeout(() => {
-              if (this.downloadStatus() === 'error') this.downloadStatus.set('idle');
-            }, 3000);
-          },
-        });
-      },
-      error: () => {
-        clearInterval(progressInterval);
-        this.downloadStatus.set('error');
-        setTimeout(() => {
-          if (this.downloadStatus() === 'error') this.downloadStatus.set('idle');
-        }, 3000);
-      }
-    });
+    this.transferService.downloadFile(file);
   }
 
 

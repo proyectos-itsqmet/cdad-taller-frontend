@@ -14,16 +14,16 @@ import { formatBytes } from '../../../core/util/format';
 })
 export class UploadDialog {
   readonly open = model(false);
-  readonly confirm = output<{ file: File; starred: boolean }>();
+  readonly confirm = output<{ files: File[]; starred: boolean }>();
 
-  protected readonly selectedFile = signal<File | null>(null);
+  protected readonly selectedFiles = signal<File[]>([]);
   protected readonly isStarred = signal(false);
   protected readonly formatBytes = formatBytes;
 
   protected onFileChange(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
-      this.selectedFile.set(input.files[0]);
+      this.selectedFiles.set(Array.from(input.files));
     }
   }
 
@@ -34,16 +34,17 @@ export class UploadDialog {
   protected close(): void {
     this.open.set(false);
     setTimeout(() => {
-      this.selectedFile.set(null);
+      this.selectedFiles.set([]);
       this.isStarred.set(false);
     }, 200);
   }
 
   protected submit(event: Event): void {
     event.preventDefault();
-    const file = this.selectedFile();
-    if (!file) return;
-    this.confirm.emit({ file, starred: this.isStarred() });
+    const files = this.selectedFiles();
+    if (files.length === 0) return;
+    this.confirm.emit({ files, starred: this.isStarred() });
     this.close();
   }
 }
+

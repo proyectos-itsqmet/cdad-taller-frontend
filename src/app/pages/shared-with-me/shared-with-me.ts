@@ -15,6 +15,7 @@ import { injectQuery } from '@tanstack/angular-query-experimental';
 import { lastValueFrom } from 'rxjs';
 
 import { FileService } from '../../core/files/file.service';
+import { TransferService } from '../../core/services/transfer.service';
 import { File, Folder } from '../../model/interfaces';
 import { formatBytes, friendlyType, relativeTime } from '../../core/util/format';
 import { FileIcon } from '../../shared/ui/file-icon/file-icon';
@@ -38,6 +39,7 @@ import { ConfirmDialog } from '../../shared/ui/confirm-dialog/confirm-dialog';
 })
 export class SharedWithMe {
   private readonly fileService = inject(FileService);
+  private readonly transferService = inject(TransferService);
 
   readonly type = input<'conmigo' | 'por-mi'>('conmigo');
 
@@ -177,57 +179,7 @@ export class SharedWithMe {
   }
 
   protected downloadFile(file: any): void {
-    this.downloadFileName.set(file.originalName);
-    this.downloadStatus.set('downloading');
-    this.downloadProgress.set(0);
-
-    const progressInterval = setInterval(() => {
-      if (this.downloadProgress() < 90) {
-        this.downloadProgress.update(p => Math.min(90, p + Math.floor(Math.random() * 15) + 5));
-      }
-    }, 250);
-
-    this.fileService.getDownloadUrl(file.id).subscribe({
-      next: (res) => {
-        this.fileService.downloadFromUrl(res.downloadUrl).subscribe({
-          next: (dlRes) => {
-            if (dlRes.type === 'progress') {
-              if (dlRes.percent > this.downloadProgress() || dlRes.percent === 100) {
-                this.downloadProgress.set(dlRes.percent);
-              }
-            } else {
-              clearInterval(progressInterval);
-              this.downloadProgress.set(100);
-              const url = window.URL.createObjectURL(dlRes.blob);
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = file.originalName;
-              a.click();
-              window.URL.revokeObjectURL(url);
-
-              this.downloadStatus.set('success');
-              setTimeout(() => {
-                if (this.downloadStatus() === 'success') this.downloadStatus.set('idle');
-              }, 3000);
-            }
-          },
-          error: () => {
-            clearInterval(progressInterval);
-            this.downloadStatus.set('error');
-            setTimeout(() => {
-              if (this.downloadStatus() === 'error') this.downloadStatus.set('idle');
-            }, 3000);
-          },
-        });
-      },
-      error: () => {
-        clearInterval(progressInterval);
-        this.downloadStatus.set('error');
-        setTimeout(() => {
-          if (this.downloadStatus() === 'error') this.downloadStatus.set('idle');
-        }, 3000);
-      }
-    });
+    this.transferService.downloadFile(file);
   }
 
 }

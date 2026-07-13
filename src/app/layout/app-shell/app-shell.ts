@@ -22,6 +22,7 @@ import { DataService } from '../../core/data/data.service';
 import { StorageMeter } from '../../shared/ui/storage-meter/storage-meter';
 import { ThemeToggle } from '../../shared/ui/theme-toggle/theme-toggle';
 import { UserAvatar } from '../../shared/ui/user-avatar/user-avatar';
+import { TransferManager } from '../../shared/ui/transfer-manager/transfer-manager';
 import { AuthService } from '../../core/auth/auth.service';
 import { User } from '../../core/models/models';
 
@@ -45,6 +46,7 @@ interface NavLink {
     StorageMeter,
     UserAvatar,
     ThemeToggle,
+    TransferManager,
   ],
   providers: [
     provideIcons({
