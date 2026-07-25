@@ -4,12 +4,14 @@ import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import {LoginBody, LoginResponse, RegisterBody, RegisterResponse} from '../../model/interfaces';
 
+import { environment } from '../../../environments/environment';
+
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
   private readonly http = inject(HttpClient);
-  private readonly API_URL = 'http://localhost:8080/auth';
+  private readonly API_URL = `${environment.apiUrl}/auth`;
 
   public readonly currentUser = signal<LoginResponse | null>(null);
 

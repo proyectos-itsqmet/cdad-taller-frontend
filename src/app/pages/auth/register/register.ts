@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
+import { ToastService } from '../../../core/toast/toast.service';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
   lucideArrowRight,
@@ -43,6 +44,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export class Register {
   private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
+  private readonly toast = inject(ToastService);
 
   protected readonly firstName = signal('');
   protected readonly lastName = signal('');
@@ -178,11 +180,13 @@ export class Register {
     }).subscribe({
       next: () => {
         this.isLoading.set(false);
+        this.toast.success('Cuenta registrada exitosamente. Ya puedes iniciar sesión.');
         void this.router.navigate(['/login']);
       },
       error: (err) => {
         this.isLoading.set(false);
         this.apiError.set('Ocurrió un error al registrar la cuenta. Es posible que el correo ya esté en uso.');
+        this.toast.error('Ocurrió un error al registrar la cuenta. Es posible que el correo ya esté en uso.');
       }
     });
   }

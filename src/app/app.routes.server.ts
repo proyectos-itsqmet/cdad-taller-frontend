@@ -7,14 +7,10 @@ export const serverRoutes: ServerRoute[] = [
   },
   {
     path: 'compartidos/:type',
-    renderMode: RenderMode.Prerender,
-    getPrerenderParams: async () => [
-      { type: 'conmigo' },
-      { type: 'por-mi' }
-    ]
+    renderMode: RenderMode.Server
   },
   {
     path: '**',
-    renderMode: RenderMode.Prerender
+    renderMode: RenderMode.Server
   }
 ];

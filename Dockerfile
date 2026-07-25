@@ -45,5 +45,5 @@ EXPOSE 4000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
   CMD wget -qO- "http://127.0.0.1:${PORT}/favicon.ico" > /dev/null 2>&1 || exit 1
 
-# Arrancar el servidor SSR
-CMD ["node", "server/server.mjs"]
+# Arrancar el servidor SSR e inyectar variables de entorno en runtime
+CMD sh -c "echo \"(function(window){window.__env=window.__env||{};window.__env.apiUrl='${API_URL:-http://localhost:8080}';})(this);\" > browser/env.js && node server/server.mjs"

@@ -44,6 +44,7 @@ import { UploadDialog } from '../../shared/ui/upload-dialog/upload-dialog';
 import { FolderService } from '../../core/folders/folder.service';
 import { FileService } from '../../core/files/file.service';
 import { TransferService } from '../../core/services/transfer.service';
+import { ToastService } from '../../core/toast/toast.service';
 import { FileMenu } from './file-menu';
 import { FolderMenu } from './folder-menu';
 import { ConfirmDialog } from '../../shared/ui/confirm-dialog/confirm-dialog';
@@ -101,10 +102,12 @@ const MOCK_TOOLTIP = 'Disponible en la versión completa';
   templateUrl: './files.html',
 })
 export class Files {
+  protected readonly isDragging = signal(false);
   protected readonly ds = inject(DataService);
   private readonly route = inject(ActivatedRoute);
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
   private readonly queryClient = injectQueryClient();
+  private readonly toast = inject(ToastService);
 
   /** Formatters surfaced to the template (never render raw data). */
   protected readonly formatBytes = formatBytes;
@@ -499,7 +502,7 @@ export class Files {
         }
       },
       error: () => {
-        alert('Error al crear la carpeta');
+        this.toast.error('Error al crear la carpeta');
       },
     });
   }
@@ -573,7 +576,7 @@ export class Files {
         error: () => {
           this.isDeleting.set(false);
           this.deleteConfirmOpen.set(false);
-          alert('Error al eliminar el archivo');
+          this.toast.error('Error al eliminar el archivo');
         },
       });
     } else {
@@ -588,7 +591,7 @@ export class Files {
         error: () => {
           this.isDeleting.set(false);
           this.deleteConfirmOpen.set(false);
-          alert('Error al eliminar la carpeta');
+          this.toast.error('Error al eliminar la carpeta');
         },
       });
     }
@@ -633,7 +636,7 @@ export class Files {
         },
         error: () => {
           this.isRenaming.set(false);
-          alert('Error al renombrar el archivo');
+          this.toast.error('Error al renombrar el archivo');
         },
       });
     } else {
@@ -646,7 +649,7 @@ export class Files {
         },
         error: () => {
           this.isRenaming.set(false);
-          alert('Error al renombrar la carpeta');
+          this.toast.error('Error al renombrar la carpeta');
         },
       });
     }
@@ -656,5 +659,89 @@ export class Files {
     const toRename = this.itemToRename();
     if (!toRename) return '';
     return toRename.type === 'file' ? (toRename.item as FileItem).originalName : (toRename.item as Folder).name;
+  }
+
+  // --- Drag & Drop ---
+  @HostListener('window:dragover', ['$event'])
+  onDragOver(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragging.set(true);
+  }
+
+  @HostListener('window:dragleave', ['$event'])
+  onDragLeave(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!event.relatedTarget || (event.relatedTarget as HTMLElement).nodeName === 'HTML') {
+      this.isDragging.set(false);
+    }
+  }
+
+  @HostListener('window:drop', ['$event'])
+  async onDrop(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragging.set(false);
+
+    const items = event.dataTransfer?.items;
+    if (!items) return;
+
+    const currentFolderId = this.folderId();
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.webkitGetAsEntry) {
+        const entry = item.webkitGetAsEntry();
+        if (entry) {
+          await this.processEntry(entry, currentFolderId);
+        }
+      }
+    }
+    this.invalidateFiles(currentFolderId);
+    this.toast.success('Archivos añadidos a la cola de subida');
+  }
+
+  private async processEntry(entry: any, parentId: string | null): Promise<void> {
+    if (entry.isFile) {
+      const file = await this.getFileFromEntry(entry);
+      if (file) {
+        this.transferService.uploadFile(file, parentId, false);
+      }
+    } else if (entry.isDirectory) {
+      try {
+        const newFolder = await lastValueFrom(
+          this.folderService.create(entry.name, parentId, false)
+        );
+        const reader = entry.createReader();
+        const entries = await this.readAllEntries(reader);
+
+        for (const child of entries) {
+          await this.processEntry(child, newFolder.id);
+        }
+      } catch (err) {
+        this.toast.error(`Error al crear la carpeta "${entry.name}"`);
+      }
+    }
+  }
+
+  private getFileFromEntry(entry: any): Promise<File> {
+    return new Promise((resolve) => entry.file((file: File) => resolve(file)));
+  }
+
+  private readAllEntries(reader: any): Promise<any[]> {
+    return new Promise((resolve, reject) => {
+      let allEntries: any[] = [];
+      const readEntries = () => {
+        reader.readEntries((entries: any[]) => {
+          if (entries.length === 0) resolve(allEntries);
+          else {
+            allEntries = allEntries.concat(entries);
+            readEntries();
+          }
+        }, reject);
+      };
+      readEntries();
+    });
   }
 }

@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
+import { ToastService } from '../../../core/toast/toast.service';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
   lucideArrowRight,
@@ -41,6 +42,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export class Login {
   private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
+  private readonly toast = inject(ToastService);
 
   protected readonly email = signal('');
   protected readonly password = signal('');
@@ -108,11 +110,13 @@ export class Login {
       .subscribe({
         next: () => {
           this.isLoading.set(false);
+          this.toast.success('Inicio de sesión exitoso');
           void this.router.navigate(['/home']);
         },
         error: (err) => {
           this.isLoading.set(false);
           this.apiError.set('Credenciales incorrectas o error en el servidor.');
+          this.toast.error('Credenciales incorrectas o error en el servidor.');
         },
       });
   }

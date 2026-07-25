@@ -5,6 +5,8 @@ import { filter, catchError, concatMap, retry } from 'rxjs/operators';
 import { FilesResponse } from '../../model/interfaces';
 import { sliceFile } from '../util/files';
 
+import { environment } from '../../../environments/environment';
+
 export interface UploadInitiateBody {
   folderId: string | null;
   originalName: string;
@@ -52,7 +54,7 @@ export interface CompleteMultipartBody {
 @Injectable({ providedIn: 'root' })
 export class FileService {
   private readonly http = inject(HttpClient);
-  private readonly API_URL = 'http://localhost:8080/api/files';
+  private readonly API_URL = `${environment.apiUrl}/api/files`;
 
   /**
    * Files smaller than this threshold keep using the fast single-shot presigned upload.
@@ -141,7 +143,7 @@ export class FileService {
 
   shareFolder(folderId: string, targetUserEmail: string): Observable<{ message: string }> {
     return this.http.post<{ message: string }>(
-      `http://localhost:8080/api/folders/${folderId}/share`,
+      `${environment.apiUrl}/api/folders/${folderId}/share`,
       { targetUserEmail },
       { withCredentials: true },
     );
@@ -149,7 +151,7 @@ export class FileService {
 
   unshareFolder(folderId: string, targetUserEmail: string): Observable<{ message: string }> {
     return this.http.delete<{ message: string }>(
-      `http://localhost:8080/api/folders/${folderId}/share`,
+      `${environment.apiUrl}/api/folders/${folderId}/share`,
       { params: { targetUserEmail }, withCredentials: true },
     );
   }
@@ -375,7 +377,7 @@ export class FileService {
     if (params.page !== undefined) httpParams.page = params.page;
     if (params.size !== undefined) httpParams.size = params.size;
 
-    return this.http.get<import('../../model/interfaces').PagedResponse<import('../../model/interfaces').History>>('http://localhost:8080/api/history', {
+    return this.http.get<import('../../model/interfaces').PagedResponse<import('../../model/interfaces').History>>(`${environment.apiUrl}/api/history`, {
       params: httpParams,
       withCredentials: true,
     });

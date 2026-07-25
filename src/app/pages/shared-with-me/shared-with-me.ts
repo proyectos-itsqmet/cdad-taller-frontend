@@ -16,6 +16,7 @@ import { lastValueFrom } from 'rxjs';
 
 import { FileService } from '../../core/files/file.service';
 import { TransferService } from '../../core/services/transfer.service';
+import { ToastService } from '../../core/toast/toast.service';
 import { File, Folder } from '../../model/interfaces';
 import { formatBytes, friendlyType, relativeTime } from '../../core/util/format';
 import { FileIcon } from '../../shared/ui/file-icon/file-icon';
@@ -40,6 +41,7 @@ import { ConfirmDialog } from '../../shared/ui/confirm-dialog/confirm-dialog';
 export class SharedWithMe {
   private readonly fileService = inject(FileService);
   private readonly transferService = inject(TransferService);
+  private readonly toast = inject(ToastService);
 
   readonly type = input<'conmigo' | 'por-mi'>('conmigo');
 
@@ -166,7 +168,7 @@ export class SharedWithMe {
       },
       error: () => {
         this.isRevoking.set(false);
-        alert('Error al revocar el acceso.');
+        this.toast.error('Error al revocar el acceso.');
       }
     });
   }

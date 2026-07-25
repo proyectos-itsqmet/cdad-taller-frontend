@@ -30,26 +30,16 @@ export class TransferService {
     this._transfers.update(ts => [{ id, name: file.name, progress: 0, status: 'uploading', type: 'upload' }, ...ts]);
     this.isPanelOpen.set(true);
     
-    const progressInterval = setInterval(() => {
-       this._transfers.update(ts => ts.map(t => {
-         if (t.id === id && t.progress < 90) {
-           return { ...t, progress: Math.min(90, t.progress + Math.floor(Math.random() * 15) + 5) };
-         }
-         return t;
-       }));
-    }, 250);
-
     this.fileService.uploadFile(file, folderId, starred).subscribe({
       next: (res) => {
         if (res.type === 'progress') {
           this._transfers.update(ts => ts.map(t => {
-            if (t.id === id && res.percent > t.progress) {
+            if (t.id === id) {
               return { ...t, progress: res.percent };
             }
             return t;
           }));
         } else {
-          clearInterval(progressInterval);
           this._transfers.update(ts => ts.map(t => t.id === id ? { ...t, progress: 100, status: 'success' } : t));
           this.queryClient.invalidateQueries({ queryKey: ['files'] });
           this.queryClient.invalidateQueries({ queryKey: ['stats'] });
@@ -57,7 +47,6 @@ export class TransferService {
         }
       },
       error: () => {
-        clearInterval(progressInterval);
         this._transfers.update(ts => ts.map(t => t.id === id ? { ...t, status: 'error' } : t));
         setTimeout(() => this.removeTransfer(id), 5000);
       }
@@ -69,28 +58,18 @@ export class TransferService {
     this._transfers.update(ts => [{ id, name: file.originalName, progress: 0, status: 'downloading', type: 'download' }, ...ts]);
     this.isPanelOpen.set(true);
 
-    const progressInterval = setInterval(() => {
-       this._transfers.update(ts => ts.map(t => {
-         if (t.id === id && t.progress < 90) {
-           return { ...t, progress: Math.min(90, t.progress + Math.floor(Math.random() * 15) + 5) };
-         }
-         return t;
-       }));
-    }, 250);
-
     this.fileService.getDownloadUrl(file.id).subscribe({
       next: (res) => {
         this.fileService.downloadFromUrl(res.downloadUrl).subscribe({
           next: (dlRes) => {
             if (dlRes.type === 'progress') {
               this._transfers.update(ts => ts.map(t => {
-                if (t.id === id && dlRes.percent > t.progress) {
+                if (t.id === id) {
                   return { ...t, progress: dlRes.percent };
                 }
                 return t;
               }));
             } else {
-              clearInterval(progressInterval);
               this._transfers.update(ts => ts.map(t => t.id === id ? { ...t, progress: 100, status: 'success' } : t));
               const url = window.URL.createObjectURL(dlRes.blob);
               const a = document.createElement('a');
@@ -102,14 +81,12 @@ export class TransferService {
             }
           },
           error: () => {
-            clearInterval(progressInterval);
             this._transfers.update(ts => ts.map(t => t.id === id ? { ...t, status: 'error' } : t));
             setTimeout(() => this.removeTransfer(id), 5000);
           }
         });
       },
       error: () => {
-        clearInterval(progressInterval);
         this._transfers.update(ts => ts.map(t => t.id === id ? { ...t, status: 'error' } : t));
         setTimeout(() => this.removeTransfer(id), 5000);
       }

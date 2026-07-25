@@ -3,11 +3,12 @@ import { isPlatformBrowser } from '@angular/common';
 import { RouterOutlet, Router } from '@angular/router';
 import { ThemeService } from './core/theme/theme.service';
 import { AuthService } from './core/auth/auth.service';
+import { ToastComponent } from './shared/ui/toast/toast';
 
 @Component({
   selector: 'app-root',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, ToastComponent],
   templateUrl: './app.html',
 })
 export class App {

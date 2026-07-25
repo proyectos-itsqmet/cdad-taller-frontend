@@ -2,13 +2,14 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { Folder } from '../models/models';
+import {environment} from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class FolderService {
   private readonly http = inject(HttpClient);
-  private readonly API_URL = 'http://localhost:8080/api/folders';
+  private readonly API_URL = `${environment.apiUrl}/api/folders`;
 
   create(name: string, parentId: string | null, starred: boolean): Observable<Folder> {
     return this.http.post<Folder>(this.API_URL, { name, parentId, starred }, {

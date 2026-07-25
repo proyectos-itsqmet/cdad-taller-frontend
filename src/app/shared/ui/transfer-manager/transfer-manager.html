@@ -29,11 +29,7 @@
           <div class="flex items-center gap-3 border-b border-border/50 px-4 py-3 last:border-b-0 hover:bg-surface-muted/50">
             <div class="relative flex size-8 shrink-0 items-center justify-center">
               @if (transfer.status === 'uploading' || transfer.status === 'downloading') {
-                <svg class="size-8 -rotate-90" viewBox="0 0 36 36">
-                  <path class="text-surface-muted" stroke-width="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                  <path class="text-brand transition-all duration-300" stroke-width="3" [attr.stroke-dasharray]="transfer.progress + ', 100'" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                </svg>
-                <ng-icon name="lucideFile" class="absolute text-[10px] text-brand"></ng-icon>
+                <ng-icon name="lucideFile" class="text-xl text-brand"></ng-icon>
               } @else if (transfer.status === 'success') {
                 <ng-icon name="lucideCheckCircle2" class="text-xl text-emerald-500"></ng-icon>
               } @else {
@@ -41,8 +37,13 @@
               }
             </div>
             
-            <div class="flex min-w-0 flex-col justify-center">
-              <span class="truncate text-sm font-medium text-foreground" [title]="transfer.name">{{ transfer.name }}</span>
+            <div class="flex min-w-0 flex-1 flex-col justify-center">
+              <div class="flex w-full items-center justify-between">
+                <span class="truncate text-sm font-medium text-foreground" [title]="transfer.name">{{ transfer.name }}</span>
+                @if (transfer.status === 'uploading' || transfer.status === 'downloading') {
+                  <span class="ml-2 text-xs font-medium text-muted-foreground">{{ transfer.progress }}%</span>
+                }
+              </div>
               <span class="text-xs text-muted-foreground">
                 @if (transfer.status === 'uploading') {
                   Subiendo...
@@ -54,6 +55,11 @@
                   Error
                 }
               </span>
+              @if (transfer.status === 'uploading' || transfer.status === 'downloading') {
+                <div class="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-border">
+                  <div class="h-full bg-brand transition-all duration-300" [style.width]="transfer.progress + '%'"></div>
+                </div>
+              }
             </div>
           </div>
         }
