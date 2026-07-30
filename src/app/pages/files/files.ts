@@ -689,17 +689,21 @@ export class Files {
 
     const currentFolderId = this.folderId();
 
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      if (item.webkitGetAsEntry) {
-        const entry = item.webkitGetAsEntry();
-        if (entry) {
-          await this.processEntry(entry, currentFolderId);
+    this.transferService.setProcessingDrop(true);
+    try {
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.webkitGetAsEntry) {
+          const entry = item.webkitGetAsEntry();
+          if (entry) {
+            await this.processEntry(entry, currentFolderId);
+          }
         }
       }
+    } finally {
+      this.transferService.setProcessingDrop(false);
+      this.toast.success('Archivos añadidos a la cola de subida');
     }
-    this.invalidateFiles(currentFolderId);
-    this.toast.success('Archivos añadidos a la cola de subida');
   }
 
   private async processEntry(entry: any, parentId: string | null): Promise<void> {

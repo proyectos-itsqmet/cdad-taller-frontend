@@ -1,6 +1,8 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { FileService } from '../files/file.service';
 import { injectQueryClient } from '@tanstack/angular-query-experimental';
+import { Subject } from 'rxjs';
+import { debounceTime } from 'rxjs/operators';
 
 export interface Transfer {
   id: string;
@@ -15,14 +17,31 @@ export class TransferService {
   private readonly fileService = inject(FileService);
   private readonly queryClient = injectQueryClient();
 
+  private readonly invalidateSubject = new Subject<void>();
+
   private readonly _transfers = signal<Transfer[]>([]);
   public readonly transfers = this._transfers.asReadonly();
   
   public readonly activeCount = computed(() => this._transfers().filter(t => t.status === 'uploading' || t.status === 'downloading').length);
   public readonly isPanelOpen = signal<boolean>(false);
+  public readonly isProcessingDrop = signal<boolean>(false);
+
+  constructor() {
+    this.invalidateSubject.pipe(debounceTime(800)).subscribe(() => {
+      this.queryClient.invalidateQueries({ queryKey: ['files'] });
+      this.queryClient.invalidateQueries({ queryKey: ['stats'] });
+    });
+  }
 
   togglePanel() {
     this.isPanelOpen.update(v => !v);
+  }
+
+  setProcessingDrop(value: boolean) {
+    this.isProcessingDrop.set(value);
+    if (!value && this.activeCount() === 0) {
+      this.invalidateSubject.next();
+    }
   }
 
   uploadFile(file: File, folderId: string | null, starred: boolean) {
@@ -41,8 +60,9 @@ export class TransferService {
           }));
         } else {
           this._transfers.update(ts => ts.map(t => t.id === id ? { ...t, progress: 100, status: 'success' } : t));
-          this.queryClient.invalidateQueries({ queryKey: ['files'] });
-          this.queryClient.invalidateQueries({ queryKey: ['stats'] });
+          if (this.activeCount() === 0 && !this.isProcessingDrop()) {
+            this.invalidateSubject.next();
+          }
           setTimeout(() => this.removeTransfer(id), 5000);
         }
       },
