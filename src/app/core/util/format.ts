@@ -158,6 +158,22 @@ export function relativeTime(iso: string): string {
   return year === 1 ? 'hace 1 año' : `hace ${year} años`;
 }
 
+/**
+ * `2026-08-31` -> `31 ago`. Parsed as LOCAL time on purpose: `new Date(iso)`
+ * on a bare date string parses as UTC, which shifts the label a day back for
+ * anyone west of Greenwich.
+ *
+ * @example shortDate('2026-08-31') // "31 ago"
+ */
+export function shortDate(iso: string): string {
+  const [year, month, day] = iso.split('-').map(Number);
+  if (!year || !month || !day) return iso;
+  return new Date(year, month - 1, day).toLocaleDateString('es', {
+    day: 'numeric',
+    month: 'short',
+  });
+}
+
 const CODE_MIMES = new Set([
   'application/json',
   'text/typescript',

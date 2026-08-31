@@ -83,10 +83,19 @@ export interface LoginRequest {
   password: string;
 }
 
-/** Response body of `POST /auth/login` and `GET /auth/validate`. */
+/**
+ * Response body of `POST /auth/login` and `GET /auth/validate`.
+ *
+ * `firstName`/`lastName`/`role` are nullable: the logout and error responses
+ * reuse this shape with no user attached.
+ */
 export interface AuthResponse {
   message: string;
   email: string;
+  firstName: string | null;
+  lastName: string | null;
+  /** e.g. "ROLE_ADMIN". A UI convenience — the JWT carries the real claim. */
+  role: string | null;
 }
 
 /** Request body of `PUT /auth/update-password`. */

@@ -3,6 +3,7 @@ import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/rou
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
   lucideBox,
+  lucideChartColumn,
   lucideCircleHelp,
   lucideHardDrive,
   lucideLogOut,
@@ -32,6 +33,7 @@ interface NavLink {
   providers: [
     provideIcons({
       lucideBox,
+      lucideChartColumn,
       lucideHardDrive,
       lucideSettings,
       lucideMenu,
@@ -60,6 +62,7 @@ export class AppShell {
 
   protected readonly navLinks: readonly NavLink[] = [
     { path: '/archivos', label: 'Mi unidad', icon: 'lucideHardDrive' },
+    { path: '/analitica', label: 'Mis analíticas', icon: 'lucideChartColumn' },
   ];
 
   protected toggleSidebar(): void {

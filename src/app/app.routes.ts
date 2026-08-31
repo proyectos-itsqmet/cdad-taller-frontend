@@ -47,6 +47,10 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/files/files').then((m) => m.Files),
       },
       {
+        path: 'analitica',
+        loadComponent: () => import('./pages/analytics/activity/activity').then((m) => m.Activity),
+      },
+      {
         path: 'configuracion',
         loadComponent: () => import('./pages/settings/settings').then((m) => m.Settings),
         children: [

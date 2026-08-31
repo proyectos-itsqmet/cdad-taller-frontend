@@ -28,6 +28,8 @@ export interface User {
   createdAt: string;
   /** Total storage the user is allowed to consume, in bytes. */
   storageQuotaBytes: number;
+  /** Backend role name, e.g. "ROLE_ADMIN". Absent for mock data. */
+  role?: string;
 }
 
 /** A folder in a user's drive. Root folders have `parentId === null`. */
