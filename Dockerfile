@@ -1,49 +1,24 @@
-# syntax=docker/dockerfile:1
-
-##########
-# Compilacion de la app Angular
-
-FROM node:22-alpine AS builder
-
-# Crear directorio app
+# Etapa 1: Construcción
+FROM node:22-alpine AS build
 WORKDIR /app
 
-# Copiar manifiestos y cachear dependencias
+# Copiar archivos de dependencias
 COPY package.json package-lock.json ./
+RUN npm ci
 
-# Instalar dependencias (incluye devDependencies para compilar)
-RUN --mount=type=cache,target=/root/.npm npm ci
-
-# Copiar el codigo fuente
+# Copiar el resto del código
 COPY . .
 
-# Compilar en produccion -> genera dist/cdad-taller-frontend
+# Construir la aplicación
 RUN npm run build
 
-##########
-# Imagen de runtime (servidor Node + SSR)
+# Etapa 2: Servidor Nginx
+FROM nginx:alpine
+# Copiar configuración personalizada de Nginx
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-FROM node:22-alpine AS runtime
+# Copiar los archivos construidos desde la etapa anterior (Angular genera los estáticos en 'browser')
+COPY --from=build /app/dist/frontend/browser /usr/share/nginx/html
 
-# Entorno de produccion y puerto
-ENV NODE_ENV=production
-ENV PORT=4000
-
-# Crear directorio app
-WORKDIR /app
-
-# Copiar solo el build (server.mjs ya trae Express empaquetado, sin node_modules)
-COPY --from=builder --chown=node:node /app/dist/cdad-taller-frontend ./
-
-# Ejecutar como usuario sin privilegios
-USER node
-
-# Asignar puerto
-EXPOSE 4000
-
-# Chequeo de salud contra un estatico liviano
-HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD wget -qO- "http://127.0.0.1:${PORT}/favicon.ico" > /dev/null 2>&1 || exit 1
-
-# Arrancar el servidor SSR e inyectar variables de entorno en runtime
-CMD sh -c "echo \"(function(window){window.__env=window.__env||{};window.__env.apiUrl='${API_URL:-http://localhost:8080}';})(this);\" > browser/env.js && node server/server.mjs"
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
