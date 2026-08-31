@@ -1,25 +1,28 @@
-# Dependencias y artefactos: se reinstalan/reconstruyen DENTRO del contenedor
-node_modules
-dist
-.angular
-
-# Control de versiones y metadatos
-.git
-.gitignore
-.gitattributes
-
-# Los propios archivos de Docker no hacen falta dentro de la imagen
-Dockerfile
-.dockerignore
-
-# Editores / IDE
-.vscode
-.idea
-.DS_Store
-
-# Logs y basura varia
-*.log
+# Dependencias
+node_modules/
 npm-debug.log*
-coverage
+yarn-debug.log*
+yarn-error.log*
+
+# Builds y temporales
+dist/
+.angular/
+out/
+coverage/
+
+# Entorno y Git
 .env
 .env.*
+.git/
+.github/
+.gitignore
+
+# Archivos del sistema y editores
+.vscode/
+.idea/
+.DS_Store
+*.log
+
+# Archivos de Docker
+Dockerfile
+.dockerignore
