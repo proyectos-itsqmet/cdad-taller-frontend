@@ -43,6 +43,10 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/home/home').then((m) => m.Home),
       },
       {
+        path: 'analytics',
+        loadComponent: () => import('./pages/analytics/activity/activity').then((m) => m.Activity),
+      },
+      {
         path: 'archivos',
         canDeactivate: [pendingUploadGuard],
         loadComponent: () => import('./pages/files/files').then((m) => m.Files),

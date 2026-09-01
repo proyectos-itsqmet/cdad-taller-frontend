@@ -108,6 +108,7 @@ export class AppShell {
 
   protected readonly navLinks: readonly NavLink[] = [
     { path: '/home', label: 'Inicio', icon: 'lucideHouse' },
+    { path: '/analytics', label: 'Dashboard', icon: 'lucideBox' },
     { path: '/archivos', label: 'Mi unidad', icon: 'lucideHardDrive' },
     { path: '/compartidos', label: 'Compartido conmigo', icon: 'lucideShare2' },
     { path: '/recientes', label: 'Recientes', icon: 'lucideClock' },
