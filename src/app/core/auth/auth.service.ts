@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, inject, signal, computed } from '@angular/core';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import {LoginBody, LoginResponse, RegisterBody, RegisterResponse} from '../../model/interfaces';
@@ -14,6 +14,11 @@ export class AuthService {
   private readonly API_URL = `${environment.apiUrl}/auth`;
 
   public readonly currentUser = signal<LoginResponse | null>(null);
+
+  public readonly isAdmin = computed(() => {
+    const user = this.currentUser() as any;
+    return user?.role === 'ROLE_ADMIN';
+  });
 
   login(credentials: LoginBody): Observable<LoginResponse> {
     return this.http.post<LoginResponse>(`${this.API_URL}/login`, credentials, {

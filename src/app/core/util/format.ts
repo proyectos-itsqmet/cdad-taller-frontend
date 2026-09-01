@@ -234,3 +234,12 @@ export function fileKind(mime: string): FileKind {
 
   return 'other';
 }
+
+/**
+ * Format a date into a short string (e.g. "31 ago").
+ */
+export function shortDate(iso: string | Date): string {
+  const d = typeof iso === 'string' ? new Date(iso) : iso;
+  if (Number.isNaN(d.getTime())) return '';
+  return new Intl.DateTimeFormat('es-ES', { month: 'short', day: 'numeric' }).format(d);
+}
