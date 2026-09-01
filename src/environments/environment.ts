@@ -11,5 +11,5 @@ const getApiUrl = () => {
 export const environment = {
   production: false,
   apiUrl: getApiUrl(),
-  analyticsBaseUrl: 'http://localhost:8001'
+  analyticsBaseUrl: ''
 };
