@@ -1,16 +1,14 @@
 import { isPlatformBrowser } from '@angular/common';
-import { httpResource } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
-  ElementRef,
+  HostListener,
   PLATFORM_ID,
   afterNextRender,
   computed,
   effect,
   inject,
   signal,
-  viewChild,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -18,54 +16,52 @@ import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
   lucideChevronDown,
   lucideFolder,
-  lucidePencil,
   lucidePlus,
   lucideSearch,
-  lucideTrash2,
+  lucideShare2,
+  lucideStar,
   lucideUpload,
   lucideX,
+  lucideLoader2,
+  lucideCheckCircle2,
 } from '@ng-icons/lucide';
+import { injectQuery, injectQueryClient } from '@tanstack/angular-query-experimental';
+import { lastValueFrom } from 'rxjs';
 
-import { FileApiService } from '../../core/api/file-api.service';
-import { FolderApiService } from '../../core/api/folder-api.service';
-import { UploadService } from '../../core/api/upload.service';
-import {
-  ListContentsResponse,
-  mapFileResponseToFileItem,
-  mapFolderResponseToFolder,
-} from '../../core/api/dto';
-import { FileItem, Folder, ViewMode } from '../../core/models/models';
+import { DataService } from '../../core/data/data.service';
+import { FileItem, Folder, User, ViewMode } from '../../core/models/models';
 import { formatBytes, friendlyType, relativeTime } from '../../core/util/format';
-import { environment } from '../../../environments/environment';
 import { Breadcrumbs } from '../../shared/ui/breadcrumbs/breadcrumbs';
 import { DetailsPane } from '../../shared/ui/details-pane/details-pane';
 import { EmptyState } from '../../shared/ui/empty-state/empty-state';
 import { FileIcon } from '../../shared/ui/file-icon/file-icon';
 import { ShareDialog } from '../../shared/ui/share-dialog/share-dialog';
 import { Skeleton } from '../../shared/ui/skeleton/skeleton';
+import { UserAvatar } from '../../shared/ui/user-avatar/user-avatar';
 import { ViewSwitcher } from '../../shared/ui/view-switcher/view-switcher';
+import { FolderDialog } from '../../shared/ui/folder-dialog/folder-dialog';
+import { UploadDialog } from '../../shared/ui/upload-dialog/upload-dialog';
+import { FolderService } from '../../core/folders/folder.service';
+import { FileService } from '../../core/files/file.service';
+import { TransferService } from '../../core/services/transfer.service';
+import { ToastService } from '../../core/toast/toast.service';
 import { FileMenu } from './file-menu';
+import { FolderMenu } from './folder-menu';
+import { ConfirmDialog } from '../../shared/ui/confirm-dialog/confirm-dialog';
+import { RenameDialog } from '../../shared/ui/rename-dialog/rename-dialog';
 import { SortField, SortMenu, SortState } from './sort-menu';
+import { FilesResponse } from '../../model/interfaces';
 
 /** localStorage key persisting the chosen view mode. */
 const VIEW_KEY = 'kubo-view';
+/** Tooltip shown on every action disabled in this read-only mockup. */
+const MOCK_TOOLTIP = 'Disponible en la versión completa';
 
 /**
  * Files — the file explorer at `/archivos` and `/archivos/:folderId`.
  *
- * Loads the current folder's contents from the real backend via
- * `httpResource` (idle/no-op during SSR — the server has no session cookie
- * to call the API with). Renders folders then files, honoring an in-page
- * search, a sort menu and a persisted view mode (grid-large / grid-small /
- * list). Selecting a file opens the shared details pane; the kebab
- * "Compartir" opens the shared share dialog.
- *
- * Deviation from the mockup: the backend exposes no "get folder by id" or
- * folder-ancestry endpoint, so the page title and breadcrumbs cannot be
- * reconstructed once navigated into a subfolder — they're static
- * ("Mi unidad"). Per-folder item counts (shown as a subtitle/size column in
- * the mockup) are dropped for the same reason: listing a folder's contents
- * only returns its direct children, not their descendant counts.
+ * Uses TanStack Query for automatic caching, background refetching,
+ * and cache invalidation on mutations (create/rename/delete).
  */
 @Component({
   selector: 'kubo-files',
@@ -76,12 +72,18 @@ const VIEW_KEY = 'kubo-view';
     Breadcrumbs,
     ViewSwitcher,
     FileIcon,
+    UserAvatar,
     EmptyState,
     Skeleton,
     DetailsPane,
     ShareDialog,
     SortMenu,
     FileMenu,
+    FolderMenu,
+    FolderDialog,
+    UploadDialog,
+    ConfirmDialog,
+    RenameDialog,
   ],
   providers: [
     provideIcons({
@@ -89,54 +91,121 @@ const VIEW_KEY = 'kubo-view';
       lucidePlus,
       lucideSearch,
       lucideX,
+      lucideStar,
+      lucideShare2,
       lucideFolder,
       lucideChevronDown,
-      lucidePencil,
-      lucideTrash2,
+      lucideLoader2,
+      lucideCheckCircle2,
     }),
   ],
   templateUrl: './files.html',
 })
 export class Files {
-  private readonly platformId = inject(PLATFORM_ID);
-  private readonly isBrowser = isPlatformBrowser(this.platformId);
+  protected readonly isDragging = signal(false);
+  protected readonly ds = inject(DataService);
   private readonly route = inject(ActivatedRoute);
-  private readonly fileApi = inject(FileApiService);
-  private readonly folderApi = inject(FolderApiService);
-  private readonly uploadService = inject(UploadService);
+  private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
+  private readonly queryClient = injectQueryClient();
+  private readonly toast = inject(ToastService);
 
   /** Formatters surfaced to the template (never render raw data). */
   protected readonly formatBytes = formatBytes;
   protected readonly friendlyType = friendlyType;
   protected readonly relativeTime = relativeTime;
+  protected readonly mockTooltip = MOCK_TOOLTIP;
 
   // --- Route → current folder -------------------------------------------
   private readonly paramMap = toSignal(this.route.paramMap);
-  /** Current folder id; `undefined` at the drive root ("Mi unidad"). */
+  /** Current folder id; `null` at the drive root ("Mi unidad"). */
   protected readonly folderId = computed(
-    () => this.paramMap()?.get('folderId') ?? undefined,
-  );
-  /** Static: the backend has no folder-ancestry endpoint to rebuild a real trail. */
-  protected readonly crumbs: Folder[] = [];
-  /** Heading for the current folder (see class-level deviation note). */
-  protected readonly title = computed(() =>
-    this.folderId() ? 'Carpeta' : 'Mi unidad',
+    () => this.paramMap()?.get('folderId') ?? null,
   );
 
-  // --- Data load -----------------------------------------------------------
-  protected readonly contents = httpResource<ListContentsResponse>(() => {
-    if (!isPlatformBrowser(this.platformId)) return undefined;
-    const id = this.folderId();
-    const params: Record<string, string> = id ? { folderId: id } : {};
-    return { url: `${environment.apiBaseUrl}/api/files`, params };
+  // --- TanStack Query: files data ----------------------------------------
+  private readonly folderService = inject(FolderService);
+  private readonly fileService = inject(FileService);
+
+  /** The main query: fetches files + folders for the current folderId. */
+  protected readonly filesQuery = injectQuery(() => ({
+    queryKey: ['files', this.folderId()] as const,
+    queryFn: () => lastValueFrom(this.fileService.getFiles(this.folderId())),
+    enabled: this.isBrowser,
+  }));
+
+  // --- Derived signals from query ----------------------------------------
+  private readonly queryData = computed(() => this.filesQuery.data() as FilesResponse | undefined);
+
+  private readonly rawFolders = computed<Folder[]>(() => {
+    const data = this.queryData();
+    if (!data) return [];
+    return data.folders.map(f => ({
+      id: f.id,
+      userId: '',
+      parentId: f.parentId,
+      name: f.name,
+      createdAt: (f.createdAt as any).toString(),
+      starred: f.starred,
+      itemsCount: f.itemsCount,
+    }));
   });
 
-  private readonly rawFolders = computed<Folder[]>(() =>
-    (this.contents.value()?.folders ?? []).map(mapFolderResponseToFolder),
-  );
-  private readonly rawFiles = computed<FileItem[]>(() =>
-    (this.contents.value()?.files ?? []).map(mapFileResponseToFileItem),
-  );
+  private readonly rawFiles = computed<FileItem[]>(() => {
+    const data = this.queryData();
+    if (!data) return [];
+    return data.files.map(f => ({
+      id: f.id,
+      folderId: f.folderId as string | null,
+      userId: '',
+      originalName: f.originalName,
+      minioObjectId: '',
+      size: f.sizeBytes,
+      mimeType: f.mimeType,
+      createdAt: (f.createdAt as any).toString(),
+      modifiedAt: (f.createdAt as any).toString(),
+      starred: f.starred,
+    }));
+  });
+
+  protected readonly currentFolderInfo = computed<Folder | null>(() => {
+    const data = this.queryData();
+    if (!data?.currentFolder) return null;
+    const cf = data.currentFolder;
+    return {
+      id: cf.id,
+      userId: '',
+      parentId: cf.parentId,
+      name: cf.name,
+      createdAt: (cf.createdAt as any).toString(),
+      starred: cf.starred,
+    };
+  });
+
+  /** Ancestor chain for the breadcrumbs. */
+  protected readonly crumbs = computed(() => {
+    const id = this.folderId();
+    if (!id) return [{ id: null, name: 'Mi unidad' } as any];
+
+    const current = this.currentFolderInfo();
+    return [
+      { id: null, name: 'Mi unidad' } as any,
+      { id, name: current ? current.name : 'Carpeta' } as any,
+    ];
+  });
+
+  /** Heading for the current folder. */
+  protected readonly title = computed(() => {
+    const id = this.folderId();
+    if (!id) return 'Mi unidad';
+
+    const current = this.currentFolderInfo();
+    return current ? current.name : 'Carpeta';
+  });
+
+  // --- Loading state (from TanStack Query) --------------------------------
+  protected readonly loading = computed(() => this.filesQuery.isPending());
+  /** Placeholder cells for the grid skeleton while a folder "loads". */
+  protected readonly skeletonSlots = Array.from({ length: 12 }, (_, i) => i);
 
   // --- View mode (persisted) --------------------------------------------
   protected readonly viewMode = signal<ViewMode>('grid-large');
@@ -148,19 +217,33 @@ export class Files {
   private readonly searchTerm = computed(() => this.norm(this.search().trim()));
   protected readonly sort = signal<SortState>({ field: 'name', dir: 'asc' });
 
-  protected readonly loading = computed(() => this.contents.isLoading());
-  /** Placeholder cells for the grid skeleton while a folder loads. */
-  protected readonly skeletonSlots = Array.from({ length: 12 }, (_, i) => i);
-
   // --- Selection + shared widgets ---------------------------------------
   protected readonly selected = signal<FileItem | null>(null);
   protected readonly detailsOpen = signal(false);
   protected readonly shareOpen = signal(false);
+  protected readonly shareItem = signal<{id: string, name: string, type: 'file' | 'folder'} | null>(null);
+  protected readonly isSharing = signal(false);
+  protected readonly shareError = signal<string | null>(null);
+  protected readonly folderDialogOpen = signal(false);
+  protected readonly uploadDialogOpen = signal(false);
 
-  // --- Upload --------------------------------------------------------------
-  private readonly fileInputRef = viewChild<ElementRef<HTMLInputElement>>('fileInput');
+  protected readonly successModalOpen = signal(false);
+  protected readonly successMessage = signal('');
+  protected readonly deleteConfirmOpen = signal(false);
 
-  // --- Derived listings --------------------------------------------------
+  // Upload / Transfer service
+  private readonly transferService = inject(TransferService);
+  protected readonly isDeleting = signal(false);
+  protected readonly itemToDelete = signal<{ type: 'file' | 'folder'; item: any } | null>(null);
+
+  protected readonly renameDialogOpen = signal(false);
+  protected readonly isRenaming = signal(false);
+  protected readonly itemToRename = signal<{ type: 'file' | 'folder'; item: any } | null>(null);
+
+  /** Local, visual-only star overrides (this mockup never writes to storage). */
+  private readonly starOverrides = signal<Record<string, boolean>>({});
+
+  // --- Filtered + sorted views -------------------------------------------
   protected readonly visibleFolders = computed<Folder[]>(() => {
     const term = this.searchTerm();
     let list = this.rawFolders();
@@ -209,6 +292,16 @@ export class Files {
     });
   }
 
+  // --- Cache invalidation helper -----------------------------------------
+  /** Invalidates the files query for a specific folder (or all folders). */
+  private invalidateFiles(folderId?: string | null): void {
+    if (folderId !== undefined) {
+      this.queryClient.invalidateQueries({ queryKey: ['files', folderId] });
+    } else {
+      this.queryClient.invalidateQueries({ queryKey: ['files'] });
+    }
+  }
+
   // --- Search helpers ----------------------------------------------------
   protected onSearch(event: Event): void {
     this.search.set((event.target as HTMLInputElement).value);
@@ -251,10 +344,11 @@ export class Files {
           cmp =
             new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
           break;
+        case 'size':
+          cmp = this.folderCount(a) - this.folderCount(b);
+          break;
         default:
-          // No backend support for folder size (item count) or type — falls
-          // through to the name tie-break below.
-          cmp = 0;
+          cmp = a.name.localeCompare(b.name, 'es');
       }
       if (cmp === 0) cmp = a.name.localeCompare(b.name, 'es');
       return cmp * mul;
@@ -287,6 +381,45 @@ export class Files {
     });
   }
 
+  // --- Per-item helpers --------------------------------------------------
+  /** Direct child count (subfolders + files) of a folder. */
+  protected folderCount(folder: Folder): number {
+    return folder.itemsCount || 0;
+  }
+  /** Humanized item count for a folder tile/cell. */
+  protected folderCountLabel(folder: Folder): string {
+    const n = folder.itemsCount || 0;
+    return n === 1 ? '1 elemento' : `${n} elementos`;
+  }
+
+  protected owner(file: FileItem): User | undefined {
+    return this.ds.userById(file.userId);
+  }
+  protected isMine(file: FileItem): boolean {
+    return file.userId === this.ds.currentUser().id;
+  }
+
+  protected shareCount(file: FileItem): number {
+    return this.ds.sharesForFile(file.id).length;
+  }
+  protected isShared(file: FileItem): boolean {
+    return this.shareCount(file) > 0;
+  }
+  protected shareLabel(file: FileItem): string {
+    const n = this.shareCount(file);
+    return n === 1 ? 'Compartido con 1 persona' : `Compartido con ${n} personas`;
+  }
+
+  protected isStarred(file: FileItem): boolean {
+    const override = this.starOverrides()[file.id];
+    return override ?? !!file.starred;
+  }
+  protected toggleStar(file: FileItem, event: Event): void {
+    event.stopPropagation();
+    const next = !this.isStarred(file);
+    this.starOverrides.update((m) => ({ ...m, [file.id]: next }));
+  }
+
   /** Absolute, human date used in `title=` tooltips. */
   protected absoluteDate(iso: string): string {
     const d = new Date(iso);
@@ -304,127 +437,315 @@ export class Files {
     this.detailsOpen.set(true);
   }
   protected openShare(file: FileItem): void {
-    this.selected.set(file);
+    this.shareError.set(null);
+    this.shareItem.set({ id: file.id, name: file.originalName, type: 'file' });
     this.shareOpen.set(true);
   }
-  /** The details pane deleted its own file; reload and clear the selection. */
-  protected onFileDeleted(file: FileItem): void {
-    this.contents.reload();
-    if (this.selected()?.id === file.id) {
-      this.selected.set(null);
+
+  protected promptShareFolder(folder: Folder): void {
+    this.shareError.set(null);
+    this.shareItem.set({ id: folder.id, name: folder.name, type: 'folder' });
+    this.shareOpen.set(true);
+  }
+
+  protected confirmShare(targetUserEmail: string): void {
+    const item = this.shareItem();
+    if (!item) return;
+
+    this.isSharing.set(true);
+    this.shareError.set(null);
+
+    const shareObs = item.type === 'file'
+      ? this.fileService.shareFile(item.id, targetUserEmail)
+      : this.fileService.shareFolder(item.id, targetUserEmail);
+
+    shareObs.subscribe({
+      next: (res) => {
+        this.isSharing.set(false);
+        this.shareOpen.set(false);
+        this.shareItem.set(null);
+        if (res && res.message) {
+          this.successMessage.set(res.message);
+        } else {
+          this.successMessage.set('Compartido exitosamente');
+        }
+        this.successModalOpen.set(true);
+        // Invalidate both files and shared-by-me to ensure updates propagate
+        this.queryClient.invalidateQueries({ queryKey: ['shared-by-me'] });
+        this.queryClient.invalidateQueries({ queryKey: ['stats'] });
+        this.invalidateFiles(this.folderId());
+      },
+      error: (err) => {
+        this.isSharing.set(false);
+        if (err.error && err.error.message) {
+          this.shareError.set(err.error.message);
+        } else {
+          this.shareError.set('Error al compartir el elemento. Verifica el correo e intenta de nuevo.');
+        }
+      }
+    });
+  }
+
+  protected openNewFolderDialog(): void {
+    this.folderDialogOpen.set(true);
+  }
+
+  protected onFolderCreated(event: { name: string; starred: boolean }): void {
+    const parentId = this.folderId();
+
+    this.folderService.create(event.name, parentId, event.starred).subscribe({
+      next: (folder) => {
+        this.invalidateFiles(parentId);
+        this.queryClient.invalidateQueries({ queryKey: ['stats'] });
+        if (event.starred) {
+          this.starOverrides.update(m => ({ ...m, [folder.id]: true }));
+        }
+      },
+      error: () => {
+        this.toast.error('Error al crear la carpeta');
+      },
+    });
+  }
+
+  protected openUploadDialog(): void {
+    this.uploadDialogOpen.set(true);
+  }
+
+  @HostListener('window:beforeunload', ['$event'])
+  protected onBeforeUnload(event: BeforeUnloadEvent): void {
+    if (this.transferService.activeCount() > 0) {
+      event.preventDefault();
+      event.returnValue = 'Hay archivos subiéndose, si sales la carga se cancelará.';
     }
   }
 
-  // --- Upload / new folder -------------------------------------------------
-  protected triggerUpload(): void {
-    if (!this.isBrowser) return;
-    this.fileInputRef()?.nativeElement.click();
-  }
-
-  protected async onFileSelected(event: Event): Promise<void> {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    input.value = '';
-    if (!file) return;
-    await this.runMutation(
-      () => this.uploadService.upload(file, this.folderId() ?? null),
-      'No se pudo subir el archivo.',
-    );
-  }
-
-  protected async createFolder(): Promise<void> {
-    if (!this.isBrowser) return;
-    const name = window.prompt('Nombre de la nueva carpeta');
-    if (!name?.trim()) return;
-    await this.runMutation(
-      () => this.folderApi.create(name.trim(), this.folderId() ?? null),
-      'No se pudo crear la carpeta.',
-    );
-  }
-
-  // --- File actions --------------------------------------------------------
-  protected async downloadFile(file: FileItem): Promise<void> {
-    if (!this.isBrowser) return;
-    try {
-      const url = await this.fileApi.getDownloadUrl(file.id);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = file.originalName;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-    } catch {
-      window.alert('No se pudo descargar el archivo.');
+  protected onFileUploaded(event: { files: File[]; starred: boolean }): void {
+    const parentId = this.folderId();
+    for (const file of event.files) {
+      this.transferService.uploadFile(file, parentId, event.starred);
     }
   }
 
-  protected async renameFile(file: FileItem): Promise<void> {
-    if (!this.isBrowser) return;
-    const newName = window.prompt('Nuevo nombre', file.originalName);
-    if (!newName?.trim() || newName.trim() === file.originalName) return;
-    await this.runMutation(
-      () => this.fileApi.rename(file.id, newName.trim()),
-      'No se pudo renombrar el archivo.',
-    );
-  }
-
-  protected async deleteFile(file: FileItem): Promise<void> {
-    if (!this.isBrowser) return;
-    if (!window.confirm(`¿Eliminar "${file.originalName}"?`)) return;
-    const ok = await this.runMutation(
-      () => this.fileApi.remove(file.id),
-      'No se pudo eliminar el archivo.',
-    );
-    if (ok && this.selected()?.id === file.id) {
-      this.clearSelection();
+  protected downloadSelected(): void {
+    const file = this.selected();
+    if (file) {
+      this.downloadFile(file);
     }
   }
 
-  // --- Folder actions --------------------------------------------------------
-  protected async renameFolder(folder: Folder, event: Event): Promise<void> {
+  protected downloadFile(file: FileItem): void {
+    this.transferService.downloadFile(file);
+  }
+
+
+  protected promptDeleteFile(file: FileItem): void {
+    this.itemToDelete.set({ type: 'file', item: file });
+    this.deleteConfirmOpen.set(true);
+  }
+
+  protected promptDeleteFolder(folder: Folder): void {
+    this.itemToDelete.set({ type: 'folder', item: folder });
+    this.deleteConfirmOpen.set(true);
+  }
+
+  protected promptDeleteSelected(): void {
+    const file = this.selected();
+    if (file) {
+      this.promptDeleteFile(file);
+    }
+  }
+
+  protected confirmDelete(): void {
+    const toDelete = this.itemToDelete();
+    if (!toDelete) return;
+
+    this.isDeleting.set(true);
+
+    if (toDelete.type === 'file') {
+      const file = toDelete.item as FileItem;
+      this.fileService.deleteFile(file.id).subscribe({
+        next: () => {
+          this.invalidateFiles(this.folderId());
+          this.queryClient.invalidateQueries({ queryKey: ['stats'] });
+          this.isDeleting.set(false);
+          this.deleteConfirmOpen.set(false);
+          if (this.selected()?.id === file.id) {
+            this.detailsOpen.set(false);
+          }
+        },
+        error: () => {
+          this.isDeleting.set(false);
+          this.deleteConfirmOpen.set(false);
+          this.toast.error('Error al eliminar el archivo');
+        },
+      });
+    } else {
+      const folder = toDelete.item as Folder;
+      this.folderService.delete(folder.id).subscribe({
+        next: () => {
+          this.invalidateFiles(this.folderId());
+          this.queryClient.invalidateQueries({ queryKey: ['stats'] });
+          this.isDeleting.set(false);
+          this.deleteConfirmOpen.set(false);
+        },
+        error: () => {
+          this.isDeleting.set(false);
+          this.deleteConfirmOpen.set(false);
+          this.toast.error('Error al eliminar la carpeta');
+        },
+      });
+    }
+  }
+
+  protected get deleteConfirmTitle(): string {
+    const toDelete = this.itemToDelete();
+    if (!toDelete) return '';
+    return toDelete.type === 'file' ? 'Eliminar archivo' : 'Eliminar carpeta';
+  }
+
+  protected get deleteConfirmMessage(): string {
+    const toDelete = this.itemToDelete();
+    if (!toDelete) return '';
+    const name = toDelete.type === 'file' ? (toDelete.item as FileItem).originalName : (toDelete.item as Folder).name;
+    return `¿Estás seguro de que deseas eliminar "${name}"? Esta acción no se puede deshacer y el elemento se perderá permanentemente.`;
+  }
+
+  protected promptRenameFile(file: FileItem): void {
+    this.itemToRename.set({ type: 'file', item: file });
+    this.renameDialogOpen.set(true);
+  }
+
+  protected promptRenameFolder(folder: Folder): void {
+    this.itemToRename.set({ type: 'folder', item: folder });
+    this.renameDialogOpen.set(true);
+  }
+
+  protected confirmRename(newName: string): void {
+    const toRename = this.itemToRename();
+    if (!toRename) return;
+
+    this.isRenaming.set(true);
+
+    if (toRename.type === 'file') {
+      const file = toRename.item as FileItem;
+      this.fileService.renameFile(file.id, newName).subscribe({
+        next: () => {
+          this.invalidateFiles(this.folderId());
+          this.isRenaming.set(false);
+          this.renameDialogOpen.set(false);
+        },
+        error: () => {
+          this.isRenaming.set(false);
+          this.toast.error('Error al renombrar el archivo');
+        },
+      });
+    } else {
+      const folder = toRename.item as Folder;
+      this.folderService.rename(folder.id, newName).subscribe({
+        next: () => {
+          this.invalidateFiles(this.folderId());
+          this.isRenaming.set(false);
+          this.renameDialogOpen.set(false);
+        },
+        error: () => {
+          this.isRenaming.set(false);
+          this.toast.error('Error al renombrar la carpeta');
+        },
+      });
+    }
+  }
+
+  protected get renameConfirmInitialName(): string {
+    const toRename = this.itemToRename();
+    if (!toRename) return '';
+    return toRename.type === 'file' ? (toRename.item as FileItem).originalName : (toRename.item as Folder).name;
+  }
+
+  // --- Drag & Drop ---
+  @HostListener('window:dragover', ['$event'])
+  onDragOver(event: DragEvent) {
     event.preventDefault();
     event.stopPropagation();
-    if (!this.isBrowser) return;
-    const newName = window.prompt('Nuevo nombre de la carpeta', folder.name);
-    if (!newName?.trim() || newName.trim() === folder.name) return;
-    await this.runMutation(
-      () => this.folderApi.rename(folder.id, newName.trim()),
-      'No se pudo renombrar la carpeta.',
-    );
+    this.isDragging.set(true);
   }
 
-  protected async deleteFolder(folder: Folder, event: Event): Promise<void> {
+  @HostListener('window:dragleave', ['$event'])
+  onDragLeave(event: DragEvent) {
     event.preventDefault();
     event.stopPropagation();
-    if (!this.isBrowser) return;
-    if (!window.confirm(`¿Eliminar la carpeta "${folder.name}" y todo su contenido?`)) return;
-    const ok = await this.runMutation(
-      () => this.folderApi.remove(folder.id),
-      'No se pudo eliminar la carpeta.',
-    );
-    // The deleted folder may have contained the selected file (cascade delete),
-    // so drop any stale selection to avoid a dangling details/share pane.
-    if (ok) this.clearSelection();
-  }
-
-  /**
-   * Runs a backend mutation, reloading the listing on success and surfacing a
-   * message on failure. Returns whether it succeeded so callers can react.
-   */
-  private async runMutation(action: () => Promise<unknown>, errorMessage: string): Promise<boolean> {
-    try {
-      await action();
-      this.contents.reload();
-      return true;
-    } catch {
-      if (this.isBrowser) window.alert(errorMessage);
-      return false;
+    if (!event.relatedTarget || (event.relatedTarget as HTMLElement).nodeName === 'HTML') {
+      this.isDragging.set(false);
     }
   }
 
-  private clearSelection(): void {
-    this.selected.set(null);
-    this.detailsOpen.set(false);
-    this.shareOpen.set(false);
+  @HostListener('window:drop', ['$event'])
+  async onDrop(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragging.set(false);
+
+    const items = event.dataTransfer?.items;
+    if (!items) return;
+
+    const currentFolderId = this.folderId();
+
+    this.transferService.setProcessingDrop(true);
+    try {
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.webkitGetAsEntry) {
+          const entry = item.webkitGetAsEntry();
+          if (entry) {
+            await this.processEntry(entry, currentFolderId);
+          }
+        }
+      }
+    } finally {
+      this.transferService.setProcessingDrop(false);
+      this.toast.success('Archivos añadidos a la cola de subida');
+    }
+  }
+
+  private async processEntry(entry: any, parentId: string | null): Promise<void> {
+    if (entry.isFile) {
+      const file = await this.getFileFromEntry(entry);
+      if (file) {
+        this.transferService.uploadFile(file, parentId, false);
+      }
+    } else if (entry.isDirectory) {
+      try {
+        const newFolder = await lastValueFrom(
+          this.folderService.create(entry.name, parentId, false)
+        );
+        const reader = entry.createReader();
+        const entries = await this.readAllEntries(reader);
+
+        for (const child of entries) {
+          await this.processEntry(child, newFolder.id);
+        }
+      } catch (err) {
+        this.toast.error(`Error al crear la carpeta "${entry.name}"`);
+      }
+    }
+  }
+
+  private getFileFromEntry(entry: any): Promise<File> {
+    return new Promise((resolve) => entry.file((file: File) => resolve(file)));
+  }
+
+  private readAllEntries(reader: any): Promise<any[]> {
+    return new Promise((resolve, reject) => {
+      let allEntries: any[] = [];
+      const readEntries = () => {
+        reader.readEntries((entries: any[]) => {
+          if (entries.length === 0) resolve(allEntries);
+          else {
+            allEntries = allEntries.concat(entries);
+            readEntries();
+          }
+        }, reject);
+      };
+      readEntries();
+    });
   }
 }

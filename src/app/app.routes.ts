@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { AppShell } from './layout/app-shell/app-shell';
 import { authGuard } from './core/auth/auth.guard';
+import { pendingUploadGuard } from './core/files/upload.guard';
 
 export const routes: Routes = [
   // ---- Public pages (no shell) ----
@@ -34,17 +35,43 @@ export const routes: Routes = [
   {
     path: '',
     component: AppShell,
-    canActivateChild: [authGuard],
+    canActivate: [authGuard],
     children: [
-      { path: '', redirectTo: 'archivos', pathMatch: 'full' },
-      { path: 'home', redirectTo: 'archivos', pathMatch: 'full' },
+      {
+        path: 'home',
+        canDeactivate: [pendingUploadGuard],
+        loadComponent: () => import('./pages/home/home').then((m) => m.Home),
+      },
+      {
+        path: 'analytics',
+        loadComponent: () => import('./pages/analytics/activity/activity').then((m) => m.Activity),
+      },
       {
         path: 'archivos',
+        canDeactivate: [pendingUploadGuard],
         loadComponent: () => import('./pages/files/files').then((m) => m.Files),
       },
       {
         path: 'archivos/:folderId',
+        canDeactivate: [pendingUploadGuard],
         loadComponent: () => import('./pages/files/files').then((m) => m.Files),
+      },
+      {
+        path: 'compartidos',
+        redirectTo: 'compartidos/conmigo',
+        pathMatch: 'full',
+      },
+      {
+        path: 'compartidos/:type',
+        loadComponent: () => import('./pages/shared-with-me/shared-with-me').then((m) => m.SharedWithMe),
+      },
+      {
+        path: 'recientes',
+        loadComponent: () => import('./pages/recent/recent').then((m) => m.Recent),
+      },
+      {
+        path: 'destacados',
+        loadComponent: () => import('./pages/starred/starred').then((m) => m.Starred),
       },
       {
         path: 'configuracion',
@@ -58,6 +85,14 @@ export const routes: Routes = [
           {
             path: 'tema',
             loadComponent: () => import('./pages/settings/appearance/appearance').then((m) => m.Appearance),
+          },
+          {
+            path: 'carpetas',
+            loadComponent: () => import('./pages/settings/folders/folders').then((m) => m.FoldersSettings),
+          },
+          {
+            path: 'actividad',
+            loadComponent: () => import('./pages/settings/activity/activity').then((m) => m.Activity),
           },
         ],
       },

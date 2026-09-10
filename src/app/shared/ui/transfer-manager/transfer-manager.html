@@ -1,0 +1,69 @@
+@if (transfers().length > 0) {
+  <div class="fixed bottom-6 right-6 z-50 flex w-80 flex-col overflow-hidden rounded-xl border border-border bg-surface shadow-2xl animate-in slide-in-from-bottom-8 fade-in">
+    <!-- Header -->
+    <div 
+      class="flex cursor-pointer items-center justify-between bg-surface-muted px-4 py-3 transition-colors hover:bg-surface-muted/80"
+      (click)="togglePanel()"
+    >
+      <div class="flex flex-col">
+        <span class="text-sm font-semibold text-foreground">
+          @if (activeCount() > 0) {
+            Subiendo {{ activeCount() }} elemento(s)
+          } @else {
+            Transferencias completadas
+          }
+        </span>
+      </div>
+      <div class="flex items-center gap-2">
+        <ng-icon 
+          [name]="isPanelOpen() ? 'lucideChevronDown' : 'lucideChevronUp'" 
+          class="text-lg text-muted-foreground transition-transform" 
+        ></ng-icon>
+      </div>
+    </div>
+
+    <!-- Body (List of transfers) -->
+    @if (isPanelOpen()) {
+      <div class="flex max-h-80 flex-col overflow-y-auto border-t border-border bg-surface">
+        @for (transfer of transfers(); track transfer.id) {
+          <div class="flex items-center gap-3 border-b border-border/50 px-4 py-3 last:border-b-0 hover:bg-surface-muted/50">
+            <div class="relative flex size-8 shrink-0 items-center justify-center">
+              @if (transfer.status === 'uploading' || transfer.status === 'downloading') {
+                <ng-icon name="lucideFile" class="text-xl text-brand"></ng-icon>
+              } @else if (transfer.status === 'success') {
+                <ng-icon name="lucideCheckCircle2" class="text-xl text-emerald-500"></ng-icon>
+              } @else {
+                <ng-icon name="lucideAlertCircle" class="text-xl text-red-500"></ng-icon>
+              }
+            </div>
+            
+            <div class="flex min-w-0 flex-1 flex-col justify-center">
+              <div class="flex w-full items-center justify-between">
+                <span class="truncate text-sm font-medium text-foreground" [title]="transfer.name">{{ transfer.name }}</span>
+                @if (transfer.status === 'uploading' || transfer.status === 'downloading') {
+                  <span class="ml-2 text-xs font-medium text-muted-foreground">{{ transfer.progress }}%</span>
+                }
+              </div>
+              <span class="text-xs text-muted-foreground">
+                @if (transfer.status === 'uploading') {
+                  Subiendo...
+                } @else if (transfer.status === 'downloading') {
+                  Descargando...
+                } @else if (transfer.status === 'success') {
+                  @if (transfer.type === 'upload') { Subido } @else { Descargado }
+                } @else {
+                  Error
+                }
+              </span>
+              @if (transfer.status === 'uploading' || transfer.status === 'downloading') {
+                <div class="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-border">
+                  <div class="h-full bg-brand transition-all duration-300" [style.width]="transfer.progress + '%'"></div>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+}

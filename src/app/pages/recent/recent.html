@@ -1,0 +1,80 @@
+<div class="p-4 sm:p-6 lg:p-8 space-y-6">
+  <header class="flex flex-col gap-4">
+    <div class="flex items-start gap-3">
+      <span class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand/10 text-brand">
+        <ng-icon name="lucideHistory" class="text-xl" aria-hidden="true" />
+      </span>
+      <div class="min-w-0">
+        <h1 class="font-heading text-2xl font-bold text-foreground">Historial</h1>
+        <p class="mt-0.5 text-sm text-muted-foreground">Revisa la actividad reciente de tus archivos y carpetas</p>
+      </div>
+    </div>
+    
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 bg-surface p-4 rounded-xl border border-border">
+      <div class="flex flex-col gap-1.5">
+        <label class="text-xs font-medium text-foreground">Nombre</label>
+        <div class="relative">
+          <ng-icon name="lucideSearch" class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input type="text" [ngModel]="itemName()" (ngModelChange)="itemName.set($event); onFilterChange()" placeholder="Buscar por nombre..." class="h-10 w-full rounded-lg border border-border bg-transparent pl-10 pr-3 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
+        </div>
+      </div>
+      <div class="flex flex-col gap-1.5">
+        <label class="text-xs font-medium text-foreground">Acción</label>
+        <input type="text" [ngModel]="actionType()" (ngModelChange)="actionType.set($event); onFilterChange()" placeholder="Ej: UPLOAD, SHARE" class="h-10 w-full rounded-lg border border-border bg-transparent px-3 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
+      </div>
+      <div class="flex flex-col gap-1.5">
+        <label class="text-xs font-medium text-foreground">Desde</label>
+        <input type="date" [ngModel]="startDate()" (ngModelChange)="startDate.set($event); onFilterChange()" class="h-10 w-full rounded-lg border border-border bg-transparent px-3 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
+      </div>
+      <div class="flex flex-col gap-1.5">
+        <label class="text-xs font-medium text-foreground">Hasta</label>
+        <input type="date" [ngModel]="endDate()" (ngModelChange)="endDate.set($event); onFilterChange()" class="h-10 w-full rounded-lg border border-border bg-transparent px-3 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
+      </div>
+    </div>
+  </header>
+
+  @if (historyQuery.isPending()) {
+    <div class="flex items-center justify-center py-10">
+      <span class="text-muted-foreground">Cargando...</span>
+    </div>
+  } @else if (!historyQuery.data()?.content || historyQuery.data()!.content.length === 0) {
+    <kubo-empty-state
+      icon="lucideHistory"
+      title="Sin actividad"
+      message="No se encontraron registros de historial."
+      actionLabel="Ir a mis archivos"
+      actionLink="/archivos"
+    />
+  } @else {
+    <ul role="list" class="space-y-3">
+      @for (item of historyQuery.data()!.content; track item.id) {
+        <li class="flex items-center gap-4 rounded-xl border border-border bg-surface p-4 transition-colors hover:border-brand/40">
+          <div class="flex size-10 items-center justify-center rounded-lg bg-surface-muted text-muted-foreground">
+            <ng-icon [name]="item.itemType === 'FOLDER' ? 'lucideFolder' : 'lucideFile'" class="text-xl" />
+          </div>
+          <div class="min-w-0 flex-1">
+            <p class="truncate font-medium text-foreground">{{ item.itemName }}</p>
+            <p class="mt-0.5 truncate text-xs text-muted-foreground">
+              <span class="font-semibold text-brand">{{ item.actionType }}</span> · {{ relativeTime(item.timestamp) }}
+            </p>
+          </div>
+        </li>
+      }
+    </ul>
+
+    <!-- Pagination -->
+    <div class="flex items-center justify-between border-t border-border pt-4">
+      <span class="text-sm text-muted-foreground">
+        Página {{ historyQuery.data()!.number + 1 }} de {{ historyQuery.data()!.totalPages || 1 }}
+      </span>
+      <div class="flex items-center gap-2">
+        <button type="button" [disabled]="historyQuery.data()!.first" (click)="prevPage()" class="inline-flex size-9 items-center justify-center rounded-lg border border-border bg-surface text-foreground transition-colors hover:bg-surface-muted disabled:opacity-50">
+          <ng-icon name="lucideChevronLeft" class="text-lg" />
+        </button>
+        <button type="button" [disabled]="historyQuery.data()!.last" (click)="nextPage()" class="inline-flex size-9 items-center justify-center rounded-lg border border-border bg-surface text-foreground transition-colors hover:bg-surface-muted disabled:opacity-50">
+          <ng-icon name="lucideChevronRight" class="text-lg" />
+        </button>
+      </div>
+    </div>
+  }
+</div>

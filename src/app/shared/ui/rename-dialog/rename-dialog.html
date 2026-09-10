@@ -1,0 +1,42 @@
+@if (open()) {
+  <div class="fixed inset-0 z-[60] flex items-center justify-center bg-background/80 backdrop-blur-sm transition-all" role="dialog" aria-modal="true" aria-labelledby="rename-dialog-title">
+    <div class="w-full max-w-md rounded-xl border border-border bg-surface p-6 shadow-xl animate-in zoom-in-95 fade-in">
+      <div class="flex items-center justify-between mb-4">
+        <h2 id="rename-dialog-title" class="font-heading text-lg font-bold tracking-tight text-foreground">Renombrar</h2>
+        <button type="button" class="rounded-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" (click)="close()">
+          <ng-icon name="lucideX" class="text-xl" aria-hidden="true"></ng-icon>
+          <span class="sr-only">Cerrar</span>
+        </button>
+      </div>
+
+      <form (submit)="submit($event)">
+        <div class="mb-6">
+          <div class="relative">
+            <ng-icon name="lucidePencil" class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" aria-hidden="true"></ng-icon>
+            <input 
+              #nameInput
+              type="text" 
+              [value]="newName()" 
+              (input)="onInput($event)"
+              placeholder="Nuevo nombre" 
+              class="h-10 w-full rounded-lg border border-border bg-surface pl-10 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+              required 
+            />
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-3">
+          <button type="button" [disabled]="loading()" class="flex h-10 items-center justify-center rounded-lg px-4 text-sm font-medium text-foreground transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:opacity-50 disabled:cursor-not-allowed" (click)="close()">
+            Cancelar
+          </button>
+          <button type="submit" [disabled]="!newName().trim() || newName().trim() === initialName() || loading()" class="flex h-10 items-center justify-center rounded-lg bg-brand px-4 text-sm font-semibold text-brand-fg transition-colors hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:cursor-not-allowed disabled:opacity-50">
+            @if (loading()) {
+              <ng-icon name="lucideLoader2" class="mr-2 animate-spin text-lg" aria-hidden="true"></ng-icon>
+            }
+            Guardar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

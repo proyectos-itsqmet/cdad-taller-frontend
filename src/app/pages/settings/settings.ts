@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideSun, lucideUser } from '@ng-icons/lucide';
+import { lucideClock, lucideFolder, lucideSun, lucideUser } from '@ng-icons/lucide';
 
 interface SettingsTab {
   /** Route relative to the `configuracion` parent. */
@@ -13,7 +13,7 @@ interface SettingsTab {
 /**
  * Settings — the settings sub-shell. Renders the page title, a secondary nav
  * (vertical side tabs on lg, horizontally-scrollable segmented tabs on mobile)
- * and a `<router-outlet/>` for the two child sections (Cuenta, Tema).
+ * and a `<router-outlet/>` for the four child sections.
  *
  * Lives inside the AppShell outlet, so it owns only its own content column.
  */
@@ -21,7 +21,7 @@ interface SettingsTab {
   selector: 'kubo-settings',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterOutlet, RouterLink, RouterLinkActive, NgIcon],
-  providers: [provideIcons({ lucideUser, lucideSun })],
+  providers: [provideIcons({ lucideUser, lucideSun, lucideFolder, lucideClock })],
   host: { class: 'block' },
   templateUrl: './settings.html',
 })
@@ -35,5 +35,7 @@ export class Settings {
   protected readonly tabs: readonly SettingsTab[] = [
     { path: './cuenta', label: 'Cuenta', icon: 'lucideUser' },
     { path: './tema', label: 'Tema', icon: 'lucideSun' },
+    { path: './carpetas', label: 'Carpetas', icon: 'lucideFolder' },
+    { path: './actividad', label: 'Actividad', icon: 'lucideClock' },
   ];
 }

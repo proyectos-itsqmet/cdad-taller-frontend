@@ -1,29 +1,28 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { AuthService } from '../../../core/auth/auth.service';
+import { ToastService } from '../../../core/toast/toast.service';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
   lucideArrowRight,
   lucideBox,
   lucideEye,
   lucideEyeOff,
-  lucideInfo,
   lucideLock,
   lucideMail,
   lucideUser,
 } from '@ng-icons/lucide';
-import { AuthService } from '../../../core/auth/auth.service';
 import { AuthBrandPanel } from '../brand-panel/brand-panel';
 
-/** Illustrative email shape check — this is a mockup, not real validation. */
+/** Client-side email shape check run before we call the backend. */
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
- * Register — public sign-up page, wired to the real backend via `AuthService`.
+ * Register — public sign-up page.
  *
- * Mirrors the login split layout. All field state is signal-driven and the
- * validation is client-side. The backend register endpoint returns a `User`
- * but does not authenticate the caller, so a successful submit navigates to
- * /login (the user still needs to sign in) instead of auto-logging in.
+ * Mirrors the login split layout. All field state is signal-driven; client-side
+ * validation runs first, then we call AuthService.register() against the
+ * backend. On success we navigate to /login so the user can sign in.
  */
 @Component({
   selector: 'kubo-register',
@@ -38,7 +37,6 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       lucideEye,
       lucideEyeOff,
       lucideArrowRight,
-      lucideInfo,
     }),
   ],
   templateUrl: './register.html',
@@ -46,6 +44,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export class Register {
   private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
+  private readonly toast = inject(ToastService);
 
   protected readonly firstName = signal('');
   protected readonly lastName = signal('');
@@ -56,6 +55,8 @@ export class Register {
 
   protected readonly showPassword = signal(false);
   protected readonly showConfirm = signal(false);
+  protected readonly isLoading = signal(false);
+  protected readonly apiError = signal<string | null>(null);
 
   /** Flip once the user tries to submit — reveals every pending hint at once. */
   protected readonly submitted = signal(false);
@@ -64,11 +65,6 @@ export class Register {
   protected readonly emailTouched = signal(false);
   protected readonly passwordTouched = signal(false);
   protected readonly confirmTouched = signal(false);
-
-  /** True while the register request is in flight — guards against double-submit. */
-  protected readonly loading = signal(false);
-  /** Set on a failed register attempt; cleared on the next submit. */
-  protected readonly registerError = signal<string | null>(null);
 
   protected readonly firstNameError = computed(() => {
     const value = this.firstName().trim();
@@ -160,10 +156,10 @@ export class Register {
     this.showConfirm.update((v) => !v);
   }
 
-  protected async onSubmit(event: Event): Promise<void> {
+  protected onSubmit(event: Event): void {
     event.preventDefault();
     this.submitted.set(true);
-    if (this.loading()) return;
+    this.apiError.set(null);
     if (
       this.firstNameError() ||
       this.lastNameError() ||
@@ -174,23 +170,24 @@ export class Register {
     ) {
       return;
     }
-
-    this.loading.set(true);
-    this.registerError.set(null);
-    try {
-      await this.authService.register({
-        email: this.email().trim(),
-        firstName: this.firstName().trim(),
-        lastName: this.lastName().trim(),
-        password: this.password(),
-      });
-      // The backend register endpoint doesn't authenticate the caller — send
-      // the user to /login to sign in with their new credentials.
-      await this.router.navigate(['/login'], { queryParams: { registrado: '1' } });
-    } catch {
-      this.registerError.set('No se pudo crear la cuenta. Verificá los datos e intentá de nuevo.');
-    } finally {
-      this.loading.set(false);
-    }
+    
+    this.isLoading.set(true);
+    this.authService.register({
+      firstName: this.firstName().trim(),
+      lastName: this.lastName().trim(),
+      email: this.email().trim(),
+      password: this.password()
+    }).subscribe({
+      next: () => {
+        this.isLoading.set(false);
+        this.toast.success('Cuenta registrada exitosamente. Ya puedes iniciar sesión.');
+        void this.router.navigate(['/login']);
+      },
+      error: (err) => {
+        this.isLoading.set(false);
+        this.apiError.set('Ocurrió un error al registrar la cuenta. Es posible que el correo ya esté en uso.');
+        this.toast.error('Ocurrió un error al registrar la cuenta. Es posible que el correo ya esté en uso.');
+      }
+    });
   }
 }

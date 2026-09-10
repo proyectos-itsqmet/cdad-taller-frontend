@@ -1,0 +1,122 @@
+<div class="flex flex-col gap-6">
+  <div>
+    <h2 class="font-heading text-xl font-semibold text-foreground">Carpetas</h2>
+    <p class="mt-1 text-sm text-muted-foreground">
+      Revisá la estructura de tu unidad y ajustá el destino de inicio.
+    </p>
+  </div>
+
+  <!-- Carpeta de inicio por defecto -->
+  <section
+    class="rounded-xl border border-border bg-surface p-5 sm:p-6"
+    aria-labelledby="fs-home-h"
+  >
+    <div class="flex items-center gap-2.5">
+      <span class="flex size-9 items-center justify-center rounded-lg bg-brand/10 text-brand">
+        <ng-icon name="lucideHouse" class="text-lg" aria-hidden="true" />
+      </span>
+      <h3 id="fs-home-h" class="font-heading text-base font-semibold text-foreground">
+        Carpeta de inicio por defecto
+      </h3>
+    </div>
+    <p class="mt-1 text-sm text-muted-foreground">
+      Dónde te dejamos al iniciar sesión.
+    </p>
+
+    <div class="mt-4 flex flex-col gap-2">
+      <label for="fs-home" class="sr-only">Carpeta de inicio</label>
+      <select
+        id="fs-home"
+        disabled
+        [title]="mockTitle"
+        class="h-11 w-full max-w-sm cursor-not-allowed rounded-lg border border-border bg-surface-muted px-3 text-sm text-muted-foreground opacity-80"
+      >
+        <option>Mi unidad (raíz)</option>
+        @for (folder of rootFolders(); track folder.id) {
+          <option>{{ folder.name }}</option>
+        }
+      </select>
+    </div>
+  </section>
+
+  <!-- Árbol de carpetas -->
+  <section
+    class="rounded-xl border border-border bg-surface p-5 sm:p-6"
+    aria-labelledby="fs-tree-h"
+  >
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <h3 id="fs-tree-h" class="font-heading text-base font-semibold text-foreground">
+          Estructura de carpetas
+        </h3>
+        <p class="mt-1 text-sm text-muted-foreground">Solo lectura. Tocá una carpeta para expandirla.</p>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          disabled
+          [title]="mockTitle"
+          class="inline-flex min-h-11 cursor-not-allowed items-center gap-1.5 rounded-lg bg-brand px-3 text-sm font-semibold text-brand-fg opacity-60"
+        >
+          <ng-icon name="lucidePlus" class="text-base" aria-hidden="true" />
+          Crear
+        </button>
+        <button
+          type="button"
+          disabled
+          [title]="mockTitle"
+          class="inline-flex min-h-11 cursor-not-allowed items-center gap-1.5 rounded-lg border border-border bg-surface px-3 text-sm font-medium text-muted-foreground opacity-70"
+        >
+          <ng-icon name="lucidePencil" class="text-base" aria-hidden="true" />
+          Renombrar
+        </button>
+        <button
+          type="button"
+          disabled
+          [title]="mockTitle"
+          class="inline-flex min-h-11 cursor-not-allowed items-center gap-1.5 rounded-lg border border-border bg-surface px-3 text-sm font-medium text-destructive opacity-70"
+        >
+          <ng-icon name="lucideTrash2" class="text-base" aria-hidden="true" />
+          Eliminar
+        </button>
+      </div>
+    </div>
+
+    <ul class="mt-4 flex flex-col rounded-lg border border-border" role="tree" aria-label="Árbol de carpetas">
+      @for (row of rows(); track row.folder.id) {
+        <li
+          role="treeitem"
+          [attr.aria-level]="row.depth + 1"
+          [attr.aria-expanded]="row.hasChildren ? row.expanded : null"
+          class="flex min-h-11 items-center gap-2 border-b border-border px-2 last:border-b-0 hover:bg-surface-muted/50"
+          [style.paddingLeft.rem]="indent(row.depth) + 0.5"
+        >
+          @if (row.hasChildren) {
+            <button
+              type="button"
+              (click)="toggle(row.folder.id)"
+              [attr.aria-label]="(row.expanded ? 'Contraer ' : 'Expandir ') + row.folder.name"
+              class="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-surface-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
+            >
+              <ng-icon
+                [name]="row.expanded ? 'lucideChevronDown' : 'lucideChevronRight'"
+                class="text-base"
+                aria-hidden="true"
+              />
+            </button>
+          } @else {
+            <span class="size-8 shrink-0" aria-hidden="true"></span>
+          }
+
+          <kubo-file-icon kind="folder" size="1.25rem" />
+          <span class="truncate text-sm text-foreground">{{ row.folder.name }}</span>
+        </li>
+      } @empty {
+        <li class="px-3 py-6 text-center text-sm text-muted-foreground">
+          Todavía no tenés carpetas.
+        </li>
+      }
+    </ul>
+  </section>
+</div>

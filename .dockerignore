@@ -1,0 +1,28 @@
+# Dependencias
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Builds y temporales
+dist/
+.angular/
+out/
+coverage/
+
+# Entorno y Git
+.env
+.env.*
+.git/
+.github/
+.gitignore
+
+# Archivos del sistema y editores
+.vscode/
+.idea/
+.DS_Store
+*.log
+
+# Archivos de Docker
+Dockerfile
+.dockerignore

@@ -1,28 +1,27 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import { AuthService } from '../../../core/auth/auth.service';
+import { ToastService } from '../../../core/toast/toast.service';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
   lucideArrowRight,
   lucideBox,
   lucideEye,
   lucideEyeOff,
-  lucideInfo,
   lucideLock,
   lucideMail,
 } from '@ng-icons/lucide';
-import { AuthService } from '../../../core/auth/auth.service';
 import { AuthBrandPanel } from '../brand-panel/brand-panel';
 
-/** Illustrative email shape check — this is a mockup, not real validation. */
+/** Client-side email shape check run before we call the backend. */
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
- * Login — public sign-in page, wired to the real backend via `AuthService`.
+ * Login — public sign-in page.
  *
  * Split layout: cyan brand panel on `lg`, form card on the right. Field state
- * lives in signals; validation is purely client-side. On a successful login
- * we navigate to /archivos; on failure we show an inline error message and
- * never navigate.
+ * lives in signals; client-side validation runs first, then we call
+ * AuthService.login() against the backend. On success we navigate to /home.
  */
 @Component({
   selector: 'kubo-login',
@@ -36,35 +35,26 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       lucideEye,
       lucideEyeOff,
       lucideArrowRight,
-      lucideInfo,
     }),
   ],
   templateUrl: './login.html',
 })
 export class Login {
   private readonly router = inject(Router);
-  private readonly route = inject(ActivatedRoute);
   private readonly authService = inject(AuthService);
-
-  /** Shown once, right after a successful registration redirected here. */
-  protected readonly justRegistered = signal(
-    this.route.snapshot.queryParamMap.get('registrado') === '1',
-  );
+  private readonly toast = inject(ToastService);
 
   protected readonly email = signal('');
   protected readonly password = signal('');
   protected readonly remember = signal(false);
   protected readonly showPassword = signal(false);
+  protected readonly isLoading = signal(false);
+  protected readonly apiError = signal<string | null>(null);
 
   /** Flip once the user tries to submit — reveals every pending hint at once. */
   protected readonly submitted = signal(false);
   protected readonly emailTouched = signal(false);
   protected readonly passwordTouched = signal(false);
-
-  /** True while the login request is in flight — guards against double-submit. */
-  protected readonly loading = signal(false);
-  /** Set on a failed login attempt; cleared on the next submit. */
-  protected readonly loginError = signal<string | null>(null);
 
   protected readonly emailError = computed(() => {
     const value = this.email().trim();
@@ -103,23 +93,31 @@ export class Login {
     this.showPassword.update((v) => !v);
   }
 
-  protected async onSubmit(event: Event): Promise<void> {
+  protected onSubmit(event: Event): void {
     event.preventDefault();
     this.submitted.set(true);
-    if (this.loading()) return;
+    this.apiError.set(null);
     if (this.emailError() || this.passwordError()) {
       return;
     }
 
-    this.loading.set(true);
-    this.loginError.set(null);
-    try {
-      await this.authService.login(this.email().trim(), this.password());
-      await this.router.navigate(['/archivos']);
-    } catch {
-      this.loginError.set('Correo o contraseña incorrectos. Intentá de nuevo.');
-    } finally {
-      this.loading.set(false);
-    }
+    this.isLoading.set(true);
+    this.authService
+      .login({
+        email: this.email().trim(),
+        password: this.password(),
+      })
+      .subscribe({
+        next: () => {
+          this.isLoading.set(false);
+          this.toast.success('Inicio de sesión exitoso');
+          void this.router.navigate(['/home']);
+        },
+        error: (err) => {
+          this.isLoading.set(false);
+          this.apiError.set('Credenciales incorrectas o error en el servidor.');
+          this.toast.error('Credenciales incorrectas o error en el servidor.');
+        },
+      });
   }
 }
